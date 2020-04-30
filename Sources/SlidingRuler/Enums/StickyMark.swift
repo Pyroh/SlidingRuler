@@ -27,8 +27,9 @@
 //
 
 
-enum StickyMark {
-    enum Bound { case any, unit, half, tenth }
+public enum StickyMark {
+    public enum Bound { case any, unit, half, tenth }
+    
     case none, nearest, lower(Bound), upper(Bound)
     
     var bound: Bound {

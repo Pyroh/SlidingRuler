@@ -92,7 +92,7 @@ public struct SlidingRuler<V>: View where V: BinaryFloatingPoint, V.Stride: Bina
         }
     }
     
-    init(value: Binding<V>,
+    public init(value: Binding<V>,
          in bounds: ClosedRange<V> = -V.infinity...V.infinity,
          step: V.Stride = 1,
          stickyMark: StickyMark = .none,
@@ -108,7 +108,7 @@ public struct SlidingRuler<V>: View where V: BinaryFloatingPoint, V.Stride: Bina
         self.formatter = formatter
     }
     
-    var body: some View {
+    public var body: some View {
         switch self.state {
         case .animating:
             NextLoop { self.state = .idle }
@@ -146,14 +146,14 @@ public struct SlidingRuler<V>: View where V: BinaryFloatingPoint, V.Stride: Bina
             self.controlSize = $0
             self.updateCellsIfNeeded()
         })
-            .onPreferenceChange(SlidingRuleSizePreferenceKey.self, perform: {
-                self.slidingRuleSize = $0
-            })
-            .transaction({
-                if $0.animation != nil && self.state == .idle { $0.animation = .easeIn(duration: 0.1) }
-            })
-            .frame(height: self.slidingRuleSize?.height)
-            .fixedSize(horizontal: false, vertical: true)
+        .onPreferenceChange(SlidingRuleSizePreferenceKey.self, perform: {
+            self.slidingRuleSize = $0
+        })
+        .transaction({
+            if $0.animation != nil && self.state == .idle { $0.animation = .easeIn(duration: 0.1) }
+        })
+        .frame(height: self.slidingRuleSize?.height)
+        .fixedSize(horizontal: false, vertical: true)
     }
     
     // MARK: Drag Gesture Management

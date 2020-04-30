@@ -27,7 +27,7 @@
 //
 
 
-enum Tick {
+public enum Tick {
     case none, unit, half, tenth
     
     var coeff: Double {
