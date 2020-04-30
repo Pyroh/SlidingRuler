@@ -33,7 +33,8 @@ struct ControlSizePreferenceKey: PreferenceKey {
     static var defaultValue: CGSize?
     
     static func reduce(value: inout CGSize?, nextValue: () -> CGSize?) {
-        value = nextValue()
+        guard let newValue = nextValue() else { return }
+        value = newValue
     }
 }
 
@@ -41,7 +42,8 @@ struct SlidingRuleSizePreferenceKey: PreferenceKey {
     static var defaultValue: CGSize?
     
     static func reduce(value: inout CGSize?, nextValue: () -> CGSize?) {
-        value = nextValue()
+        guard let newValue = nextValue() else { return }
+        value = newValue
     }
 }
 
