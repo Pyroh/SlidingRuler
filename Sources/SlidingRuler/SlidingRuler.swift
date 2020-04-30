@@ -1,8 +1,37 @@
+//
+//  SlidingRuler.swift
+//
+//  SlidingRuler
+//
+//  MIT License
+//
+//  Copyright (c) 2020 Pierre Tacchi
+//
+//  Permission is hereby granted, free of charge, to any person obtaining a copy
+//  of this software and associated documentation files (the "Software"), to deal
+//  in the Software without restriction, including without limitation the rights
+//  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+//  copies of the Software, and to permit persons to whom the Software is
+//  furnished to do so, subject to the following conditions:
+//
+//  The above copyright notice and this permission notice shall be included in all
+//  copies or substantial portions of the Software.
+//
+//  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+//  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+//  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+//  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+//  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+//  SOFTWARE.
+//
+
+
 import SwiftUI
 import SmoothOperators
 
 @available(iOS 13.0, *)
-struct SlidingRuler<V>: View where V: BinaryFloatingPoint, V.Stride: BinaryFloatingPoint {
+public struct SlidingRuler<V>: View where V: BinaryFloatingPoint, V.Stride: BinaryFloatingPoint {
     @Environment(\.slidingRulerStyle) private var style
     @Environment(\.slidingRulerStyle.cellWidth) private var cellWidth
     @Environment(\.slidingRulerStyle.cursorAlignment) private var verticalCursorAlignment
@@ -358,62 +387,5 @@ struct SlidingRuler<V>: View where V: BinaryFloatingPoint, V.Stride: BinaryFloat
     private func valueTick() {
         let fg = UIImpactFeedbackGenerator(style: .light)
         fg.impactOccurred(intensity: 0.5)
-    }
-}
-
-struct SlideRulerPresenter: View {
-    static let formatter: NumberFormatter = {
-        let f = NumberFormatter()
-        f.minimumFractionDigits = 0
-        f.maximumFractionDigits = 2
-        
-        return f
-    }()
-    
-    @State var value: CGFloat = .zero
-    
-    var body: some View {
-        VStack {
-            Rectangle().foregroundColor(.orange).frame(size: .init(width: 100, height: 50))
-                .overlay(Rectangle().stroke(Color.blue, lineWidth: 3))
-                .offset(x: value * 80, y: 0)
-            Form {
-                SlidingRuler(value: $value, in: -2...10, stickyMark: .nearest, tick: .half)
-                    .padding(.vertical)
-                Slider(value: $value, in: -2...2)
-            }
-            HStack(spacing: 20) {
-                Button(action: {
-                    withAnimation { self.value <- { $0- } }
-                }) {
-                    Image(systemName: "minus.circle.fill")
-                }
-                Button(action: {
-                    withAnimation { self.value = 0 }
-                }) {
-                    Image(systemName: "xmark.circle.fill")
-                }
-                Button(action: {
-                    withAnimation { self.value <- { $0+ } }
-                }) {
-                    Image(systemName: "plus.circle.fill")
-                }
-            }
-            .font(.largeTitle)
-            .padding()
-            HStack {
-                ForEach([-123, -12.3, -1.23, 1.23, 12.3, 123], id: \.self) { value in
-                    Button(Self.formatter.string(for: value) ?? "Er") { withAnimation { self.value = value } }
-                }
-            }
-        }
-        .padding(.top, 33.334)
-    }
-}
-
-struct SlideRuler_Previews: PreviewProvider {
-    static var previews: some View {
-        SlideRulerPresenter()
-            .environment(\.colorScheme, .light)
     }
 }
