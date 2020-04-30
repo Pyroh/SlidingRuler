@@ -3,3 +3,6 @@
 /Packages
 /*.xcodeproj
 xcuserdata/
+/SlidingRulerTestingBoard
+/.swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
+/Package.resolved
