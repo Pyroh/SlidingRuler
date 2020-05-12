@@ -30,11 +30,8 @@
 import Foundation
 
 class RulerCell<V: BinaryFloatingPoint>: Identifiable {
-    let id: UUID
+    var id: V { mark }
     var mark: V
     
-    init(mark: V) {
-        self.id = .init()
-        self.mark = mark
-    }
+    init(_ mark: V) { self.mark = mark }
 }

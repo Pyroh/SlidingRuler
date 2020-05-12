@@ -29,21 +29,19 @@
 
 import SwiftUI
 
-struct ControlSizePreferenceKey: PreferenceKey {
-    static var defaultValue: CGSize?
-    
-    static func reduce(value: inout CGSize?, nextValue: () -> CGSize?) {
-        guard let newValue = nextValue() else { return }
-        value = newValue
+struct RulerHeightPreferenceKey: PreferenceKey {
+    static var defaultValue: CGFloat?
+
+    static func reduce(value: inout CGFloat?, nextValue: () -> CGFloat?) {
+        if let newValue = nextValue() { value = newValue }
     }
 }
 
-struct SlidingRuleSizePreferenceKey: PreferenceKey {
-    static var defaultValue: CGSize?
-    
-    static func reduce(value: inout CGSize?, nextValue: () -> CGSize?) {
-        guard let newValue = nextValue() else { return }
-        value = newValue
+struct ControlWidthPreferenceKey: PreferenceKey {
+    static var defaultValue: CGFloat?
+
+    static func reduce(value: inout CGFloat?, nextValue: () -> CGFloat?) {
+        if let newValue = nextValue() { value = newValue }
     }
 }
 

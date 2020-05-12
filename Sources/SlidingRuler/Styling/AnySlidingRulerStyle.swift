@@ -32,7 +32,8 @@ import SwiftUI
 struct AnySlidingRulerStyle: SlidingRulerStyle {
     private let cellProvider: (SlidingRulerStyleConfiguation) -> AnyView
     private let cursorProvider: () -> AnyView
-    
+
+    let fractions: Int
     let cellWidth: CGFloat
     let cursorAlignment: VerticalAlignment
     let isStatic: Bool
@@ -44,6 +45,7 @@ struct AnySlidingRulerStyle: SlidingRulerStyle {
         self.cursorProvider = {
             AnyView(style.makeCursorBody())
         }
+        self.fractions = style.fractions
         self.cellWidth = style.cellWidth
         self.cursorAlignment = style.cursorAlignment
         self.isStatic = style.isStatic

@@ -39,11 +39,13 @@ struct Ruler<V: BinaryFloatingPoint>: View, Equatable {
     let formatter: NumberFormatter?
     
     var body: some View {
-        return HStack(spacing: 0) {
+        HStack(spacing: 0) {
             ForEach(self.cells) { cell in
                 self.style.makeCellBody(configuration: self.configuration(forCell: cell))
             }
-        }.animation(nil)
+        }
+        .propagateHeight(RulerHeightPreferenceKey.self)
+        .animation(nil)
     }
     
     private func configuration(forCell cell: RulerCell<V>) -> SlidingRulerStyleConfiguation {
@@ -53,7 +55,7 @@ struct Ruler<V: BinaryFloatingPoint>: View, Equatable {
     
     static func ==(lhs: Self, rhs: Self) -> Bool {
         lhs.step == rhs.step &&
-            lhs.cells.count == rhs.cells.count &&
-            (StaticSlideRulerStyleEnvironment.isStatic || lhs.markOffset == rhs.markOffset)
+        lhs.cells.count == rhs.cells.count &&
+        (StaticSlideRulerStyleEnvironment.isStatic || lhs.markOffset == rhs.markOffset)
     }
 }

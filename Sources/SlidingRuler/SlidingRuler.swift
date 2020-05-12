@@ -32,23 +32,26 @@ import SmoothOperators
 
 @available(iOS 13.0, *)
 public struct SlidingRuler<V>: View where V: BinaryFloatingPoint, V.Stride: BinaryFloatingPoint {
+    typealias S = V.Stride
+
     @Environment(\.slidingRulerStyle) private var style
     @Environment(\.slidingRulerStyle.cellWidth) private var cellWidth
     @Environment(\.slidingRulerStyle.cursorAlignment) private var verticalCursorAlignment
+    @Environment(\.slidingRulerStyle.fractions) private var fractions
     
     @Environment(\.slideRulerCellOverflow) private var cellOverflow
     @Environment(\.layoutDirection) private var layoutDirection
     
     @Binding private var value: V
     private let bounds: ClosedRange<V>
-    private let step: V
+    private let step: S
     private let stickyMark: StickyMark
     private let tick: Tick
     private let editingChangedCallback: (Bool) -> ()
     private let formatter: NumberFormatter?
-    
-    @State private var controlSize: CGSize?
-    @State private var slidingRuleSize: CGSize?
+
+    @State private var controlWidth: CGFloat?
+    @State private var rulerHeight: CGFloat?
     
     @State private var cells: [RulerCell<V>] = []
     
@@ -67,8 +70,6 @@ public struct SlidingRuler<V>: View where V: BinaryFloatingPoint, V.Stride: Bina
     }
     private var shouldReleaseRubberBand: Bool { !dragBounds.contains(dragOffset.width) }
     private var clampedValue: V { value.clamped(to: bounds) }
-    private var halfStep: V { step / 2 }
-    private var tenthStep: V { step / 10 }
     
     private var effectiveOffset: CGSize {
         switch state {
@@ -91,6 +92,9 @@ public struct SlidingRuler<V>: View where V: BinaryFloatingPoint, V.Stride: Bina
             return value ?? 0
         }
     }
+
+    private var fractionStep: S { step / S(fractions) }
+    private var halfStep: S { step / S(fractions) }
     
     public init(value: Binding<V>,
          in bounds: ClosedRange<V> = -V.infinity...V.infinity,
@@ -101,7 +105,7 @@ public struct SlidingRuler<V>: View where V: BinaryFloatingPoint, V.Stride: Bina
          formatter: NumberFormatter? = nil) {
         self._value = value
         self.bounds = bounds
-        self.step = V(step)
+        self.step = step
         self.stickyMark = stickyMark
         self.tick = tick
         self.editingChangedCallback = onEditingChanged
@@ -126,33 +130,27 @@ public struct SlidingRuler<V>: View where V: BinaryFloatingPoint, V.Stride: Bina
             ZStack(alignment: .init(horizontal: .center, vertical: self.verticalCursorAlignment)) {
                 Ruler(cells: self.cells, step: Double(self.step), markOffset: self.markOffset, bounds: self.bounds, formatter: self.formatter)
                     .equatable()
-                    .background(GeometryReader { proxy in
-                        Color.clear
-                            .preference(key: SlidingRuleSizePreferenceKey.self, value: proxy.size)
-                    })
                     .animation(nil)
                     .modifier(InfiniteOffsetEffect(offset: self.effectiveOffset, maxOffset: 240))
                 self.style.makeCursorBody()
             }
             .frame(width: proxy.size.width)
             .clipped()
-            .preference(key: ControlSizePreferenceKey.self, value: proxy.size)
+            .propagateWidth(ControlWidthPreferenceKey.self)
             .fixedSize(horizontal: false, vertical: true)
         }
         .onHorizontalDragGesture(initialTouch: firstTouchHappened, perform: horizontalDragAction(withValue:))
         .modifier(InfiniteMarkOffsetModifier(effectiveValue, step: step))
         .onPreferenceChange(MarkOffsetPreferenceKey.self, perform: { self.markOffset = $0})
-        .onPreferenceChange(ControlSizePreferenceKey.self, perform: {
-            self.controlSize = $0
+        .onPreferenceChange(ControlWidthPreferenceKey.self, perform: {
+            self.controlWidth = $0
             self.updateCellsIfNeeded()
         })
-        .onPreferenceChange(SlidingRuleSizePreferenceKey.self, perform: {
-            self.slidingRuleSize = $0
-        })
+        .onHeightPreferenceChange(RulerHeightPreferenceKey.self, storeValueIn: $rulerHeight)
         .transaction({
             if $0.animation != nil && self.state == .idle { $0.animation = .easeIn(duration: 0.1) }
         })
-        .frame(height: self.slidingRuleSize?.height)
+        .frame(height: rulerHeight)
         .fixedSize(horizontal: false, vertical: true)
     }
     
@@ -215,11 +213,11 @@ public struct SlidingRuler<V>: View where V: BinaryFloatingPoint, V.Stride: Bina
     // MARK: Value Management
     
     private func value(fromOffset offset: CGSize) -> V {
-        -V(offset.width / cellWidth) * step
+        -V(offset.width / cellWidth) * V(step)
     }
     
     private func offset(fromValue value: V) -> CGSize {
-        let width = CGFloat(-value * V(cellWidth) / step)
+        let width = CGFloat(-value * V(cellWidth) / V(step))
         return .init(horizontal: width)
     }
     
@@ -249,26 +247,7 @@ public struct SlidingRuler<V>: View where V: BinaryFloatingPoint, V.Stride: Bina
     }
     
     private func nearestValue(_ value: V) -> V {
-        if case .none = stickyMark { return value }
-        let t: V
-        
-        switch stickyMark.bound {
-        case .any, .tenth: t = tenthStep
-        case .half: t = halfStep
-        case .unit: t = step
-        }
-        
-        switch stickyMark {
-        case .lower(_): return (value / t).rounded(.down) * t
-        case .upper(_): return (value / t).rounded(.up) * t
-        case .nearest:
-            let lower = (value / t).rounded(.down) * t
-            let upper = (value / t).rounded(.up) * t
-            let deltaDown = abs(value - lower)
-            let deltaUp = abs(value - upper)
-            return deltaDown < deltaUp ? lower : upper
-        default: fatalError()
-        }
+        value
     }
     
     func directionalValue<T: Numeric>(_ value: T) -> T {
@@ -283,14 +262,14 @@ public struct SlidingRuler<V>: View where V: BinaryFloatingPoint, V.Stride: Bina
     // MARK: Control Update
     
     private func updateCellsIfNeeded() {
-        guard let controlWidth = controlSize?.width else { return }
+        guard let controlWidth = controlWidth else { return }
         let count = (Int(ceil(controlWidth / cellWidth)) + 4).nextOdd()
         if count != cells.count { self.populateCells(count: count) }
     }
     
     private func populateCells(count: Int) {
         let boundary = count.previousEven() / 2
-        cells = (-boundary...boundary).map { RulerCell(mark: V($0)) }
+        cells = (-boundary...boundary).enumerated().map { RulerCell(V($0.element)) }
     }
     
     // MARK: Physic Simulation

@@ -32,16 +32,20 @@ import SwiftUI
 public protocol SlidingRulerStyle {
     associatedtype CellBody: View
     associatedtype CursorBody: View
-    
+
+    var fractions: Int { get }
     var cellWidth: CGFloat { get }
     var cursorAlignment: VerticalAlignment { get }
     var isStatic: Bool { get }
+    var hasHalf: Bool { get }
     
     func makeCellBody(configuration: SlidingRulerStyleConfiguation) -> CellBody
     func makeCursorBody() -> CursorBody
 }
 
 public extension SlidingRulerStyle {
+    var fractions: Int { 10 }
     var cellWidth: CGFloat { 120 }
     var isStatic: Bool { false }
+    var hasHalf: Bool { true }
 }
