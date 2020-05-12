@@ -30,15 +30,43 @@
 import SwiftUI
 
 extension View {
+    public func slidingRulerStyle<S>(_ style: S) -> some View where S: SlidingRulerStyle {
+        environment(\.slidingRulerStyle, .init(style: style))
+    }
+
+    public func slidingRulerCellOverflow(_ overflow: Int) -> some View {
+        environment(\.slideRulerCellOverflow, overflow)
+    }
+}
+
+extension View {
     func frame(size: CGSize?, alignment: Alignment = .center) -> some View {
         self.frame(width: size?.width, height: size?.height, alignment: alignment)
     }
-    
-    func slidingRulerStyle<S>(_ style: S) -> some View where S: SlidingRulerStyle {
-        environment(\.slidingRulerStyle, .init(style: style))
+
+    func propagateHeight<K: PreferenceKey>(_ key: K.Type) -> some View where K.Value == CGFloat? {
+        overlay(
+            GeometryReader { proxy in
+                Color.clear
+                    .preference(key: key, value: proxy.frame(in: .local).height)
+            }
+        )
     }
-    
-    func slidingRulerCellOverflow(_ overflow: Int) -> some View {
-        environment(\.slideRulerCellOverflow, overflow)
+
+    func onHeightPreferenceChange<K: PreferenceKey>(_ key: K.Type = K.self, storeValueIn storage: Binding<CGFloat?>) -> some View where K.Value == CGFloat? {
+        onPreferenceChange(key, perform: { storage.wrappedValue = $0 })
+    }
+
+    func propagateWidth<K: PreferenceKey>(_ key: K.Type) -> some View where K.Value == CGFloat? {
+        overlay(
+            GeometryReader { proxy in
+                Color.clear
+                    .preference(key: key, value: proxy.frame(in: .local).width)
+            }
+        )
+    }
+
+    func onWidthPreferenceChange<K: PreferenceKey>(_ key: K.Type = K.self, storeValueIn storage: Binding<CGFloat?>) -> some View where K.Value == CGFloat? {
+        onPreferenceChange(key, perform: { storage.wrappedValue = $0 })
     }
 }

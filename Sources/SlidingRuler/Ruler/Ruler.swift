@@ -1,5 +1,5 @@
 //
-//  SlidingRule.swift
+//  Ruler.swift
 //
 //  SlidingRuler
 //
@@ -29,10 +29,10 @@
 
 import SwiftUI
 
-struct SlidingRule<V: BinaryFloatingPoint>: View, Equatable {
+struct Ruler<V: BinaryFloatingPoint>: View, Equatable {
     @Environment(\.slidingRulerStyle) private var style
     
-    let cells: [SlidingRuleCell<V>]
+    let cells: [RulerCell<V>]
     let step: Double
     let markOffset: Double
     let bounds: ClosedRange<V>
@@ -46,7 +46,7 @@ struct SlidingRule<V: BinaryFloatingPoint>: View, Equatable {
         }.animation(nil)
     }
     
-    private func configuration(forCell cell: SlidingRuleCell<V>) -> SlidingRulerStyleConfiguation {
+    private func configuration(forCell cell: RulerCell<V>) -> SlidingRulerStyleConfiguation {
         let range = Double(bounds.lowerBound)...Double(bounds.upperBound)
         return .init(mark: (Double(cell.mark) + markOffset) * step, bounds: range, step: Double(step), formatter: formatter)
     }

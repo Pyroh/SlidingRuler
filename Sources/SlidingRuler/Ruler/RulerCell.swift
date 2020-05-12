@@ -1,5 +1,5 @@
 //
-//  SlidingRuleCell.swift
+//  RulerCell.swift
 //
 //  SlidingRuler
 //
@@ -29,7 +29,7 @@
 
 import Foundation
 
-class SlidingRuleCell<V: BinaryFloatingPoint>: Identifiable {
+class RulerCell<V: BinaryFloatingPoint>: Identifiable {
     let id: UUID
     var mark: V
     

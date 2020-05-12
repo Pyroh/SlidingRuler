@@ -50,7 +50,7 @@ public struct SlidingRuler<V>: View where V: BinaryFloatingPoint, V.Stride: Bina
     @State private var controlSize: CGSize?
     @State private var slidingRuleSize: CGSize?
     
-    @State private var cells: [SlidingRuleCell<V>] = []
+    @State private var cells: [RulerCell<V>] = []
     
     @State private var state: SlidingRulerState = .idle
     @State private var animatedValue: V = .zero
@@ -124,7 +124,7 @@ public struct SlidingRuler<V>: View where V: BinaryFloatingPoint, V.Stride: Bina
         
         return GeometryReader { proxy in
             ZStack(alignment: .init(horizontal: .center, vertical: self.verticalCursorAlignment)) {
-                SlidingRule(cells: self.cells, step: Double(self.step), markOffset: self.markOffset, bounds: self.bounds, formatter: self.formatter)
+                Ruler(cells: self.cells, step: Double(self.step), markOffset: self.markOffset, bounds: self.bounds, formatter: self.formatter)
                     .equatable()
                     .background(GeometryReader { proxy in
                         Color.clear
@@ -290,7 +290,7 @@ public struct SlidingRuler<V>: View where V: BinaryFloatingPoint, V.Stride: Bina
     
     private func populateCells(count: Int) {
         let boundary = count.previousEven() / 2
-        cells = (-boundary...boundary).map { SlidingRuleCell(mark: V($0)) }
+        cells = (-boundary...boundary).map { RulerCell(mark: V($0)) }
     }
     
     // MARK: Physic Simulation
