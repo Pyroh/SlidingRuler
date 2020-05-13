@@ -247,7 +247,7 @@ extension SlidingRuler {
         let delta = abs(nearest - value)
         let fractionalValue = V(step / S(fractions))
 
-        guard delta <= fractionalValue else { return }
+        guard delta < fractionalValue else { return }
 
         let animThreshold = V(step / 200)
         let animation: Animation? = delta > animThreshold ? .easeOut(duration: 0.1) : nil
