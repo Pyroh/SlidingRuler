@@ -38,6 +38,7 @@ public struct SlidingRuler<V>: View where V: BinaryFloatingPoint, V.Stride: Bina
     @Environment(\.slidingRulerStyle.cellWidth) private var cellWidth
     @Environment(\.slidingRulerStyle.cursorAlignment) private var verticalCursorAlignment
     @Environment(\.slidingRulerStyle.fractions) private var fractions
+    @Environment(\.slidingRulerStyle.hasHalf) private var hasHalf
     
     @Environment(\.slideRulerCellOverflow) private var cellOverflow
     @Environment(\.layoutDirection) private var layoutDirection
@@ -45,8 +46,8 @@ public struct SlidingRuler<V>: View where V: BinaryFloatingPoint, V.Stride: Bina
     @Binding private var value: V
     private let bounds: ClosedRange<V>
     private let step: S
-    private let stickyMark: StickyMark
-    private let tick: Tick
+    private let stickyMark: TickMark
+    private let tick: TickMark
     private let editingChangedCallback: (Bool) -> ()
     private let formatter: NumberFormatter?
 
@@ -70,7 +71,7 @@ public struct SlidingRuler<V>: View where V: BinaryFloatingPoint, V.Stride: Bina
     }
     private var shouldReleaseRubberBand: Bool { !dragBounds.contains(dragOffset.width) }
     private var clampedValue: V { value.clamped(to: bounds) }
-    
+
     private var effectiveOffset: CGSize {
         switch state {
         case .idle:
@@ -81,7 +82,7 @@ public struct SlidingRuler<V>: View where V: BinaryFloatingPoint, V.Stride: Bina
             return dragOffset
         }
     }
-    
+
     private var effectiveValue: V {
         switch state {
         case .idle, .flicking:
@@ -93,14 +94,12 @@ public struct SlidingRuler<V>: View where V: BinaryFloatingPoint, V.Stride: Bina
         }
     }
 
-    private var fractionStep: S { step / S(fractions) }
-    private var halfStep: S { step / S(fractions) }
     
     public init(value: Binding<V>,
          in bounds: ClosedRange<V> = -V.infinity...V.infinity,
          step: V.Stride = 1,
-         stickyMark: StickyMark = .none,
-         tick: Tick = .none,
+         stickyMark: TickMark = .none,
+         tick: TickMark = .none,
          onEditingChanged: @escaping (Bool) -> () = { _ in },
          formatter: NumberFormatter? = nil) {
         self._value = value
@@ -125,7 +124,7 @@ public struct SlidingRuler<V>: View where V: BinaryFloatingPoint, V.Stride: Bina
             }
         default: break
         }
-        
+
         return GeometryReader { proxy in
             ZStack(alignment: .init(horizontal: .center, vertical: self.verticalCursorAlignment)) {
                 Ruler(cells: self.cells, step: Double(self.step), markOffset: self.markOffset, bounds: self.bounds, formatter: self.formatter)
@@ -153,6 +152,9 @@ public struct SlidingRuler<V>: View where V: BinaryFloatingPoint, V.Stride: Bina
         .frame(height: rulerHeight)
         .fixedSize(horizontal: false, vertical: true)
     }
+}
+
+extension SlidingRuler {
     
     // MARK: Drag Gesture Management
     
@@ -166,7 +168,7 @@ public struct SlidingRuler<V>: View where V: BinaryFloatingPoint, V.Stride: Bina
     }
     
     private func firstTouchHappened() {
-        if state != .dragging {
+        if state == .flicking {
             inertialTimer?.cancel()
             state = .idle
         }
@@ -209,16 +211,19 @@ public struct SlidingRuler<V>: View where V: BinaryFloatingPoint, V.Stride: Bina
         referenceOffset = nil
         self.editingChangedCallback(false)
     }
-    
+}
+
+extension SlidingRuler {
+
     // MARK: Value Management
     
     private func value(fromOffset offset: CGSize) -> V {
-        -V(offset.width / cellWidth) * V(step)
+        self.directionalValue(-V(offset.width / cellWidth) * V(step))
     }
     
     private func offset(fromValue value: V) -> CGSize {
         let width = CGFloat(-value * V(cellWidth) / V(step))
-        return .init(horizontal: width)
+        return self.directionalOffset(.init(horizontal: width))
     }
     
     private func setValue(_ newValue: V, via key: KeyPath<Self, Binding<V>>) {
@@ -236,18 +241,36 @@ public struct SlidingRuler<V>: View where V: BinaryFloatingPoint, V.Stride: Bina
     }
     
     private func snapIfNeeded() {
-        let nearest = self.nearestValue(self.value)
-        if  nearest != value {
-            if abs(nearest - value) > 0.005 {
-                withAnimation(.easeOut(duration: 0.1)) { self.value = nearest }
-            } else {
-                withoutAnimation { self.value = nearest }
-            }
-        }
+        let nearest = self.nearestSnapValue(self.value)
+        guard nearest != value else { return }
+
+        let delta = abs(nearest - value)
+        let fractionalValue = V(step / S(fractions))
+
+        guard delta <= fractionalValue else { return }
+
+        let animThreshold = V(step / 200)
+        let animation: Animation? = delta > animThreshold ? .easeOut(duration: 0.1) : nil
+
+        dragOffset = offset(fromValue: nearest)
+        withAnimation(animation) { self.value = nearest }
     }
     
-    private func nearestValue(_ value: V) -> V {
-        value
+    private func nearestSnapValue(_ value: V) -> V {
+        let t: V
+
+        switch stickyMark {
+        case .unit: t = V(step)
+        case .half: t = V(step / 2)
+        case .fraction: t = V(step / S(fractions))
+        default: return value
+        }
+
+        let lower = (value / t).rounded(.down) * t
+        let upper = (value / t).rounded(.up) * t
+        let deltaDown = abs(value - lower)
+        let deltaUp = abs(value - upper)
+        return deltaDown < deltaUp ? lower : upper
     }
     
     func directionalValue<T: Numeric>(_ value: T) -> T {
@@ -258,7 +281,10 @@ public struct SlidingRuler<V>: View where V: BinaryFloatingPoint, V.Stride: Bina
         let width = self.directionalValue(offset.width)
         return .init(width: width, height: offset.height)
     }
-    
+}
+
+extension SlidingRuler {
+
     // MARK: Control Update
     
     private func updateCellsIfNeeded() {
@@ -271,7 +297,10 @@ public struct SlidingRuler<V>: View where V: BinaryFloatingPoint, V.Stride: Bina
         let boundary = count.previousEven() / 2
         cells = (-boundary...boundary).enumerated().map { RulerCell(V($0.element)) }
     }
-    
+}
+
+extension SlidingRuler {
+
     // MARK: Physic Simulation
     
     private func applyInertia(startLoc: CGPoint, releaseLoc: CGPoint, initialVelocity: CGFloat) {
@@ -332,13 +361,17 @@ public struct SlidingRuler<V>: View where V: BinaryFloatingPoint, V.Stride: Bina
     private func releaseRubberBand() {
         self.animatedValue = self.value(fromOffset: effectiveOffset)
         self.state = .animating
+        self.dragOffset = self.offset(fromValue: self.value)
         NextLoop {
             withAnimation(.spring(response: 0.666, dampingFraction: 1.0)) {
                 self.animatedValue = self.value
             }
         }
     }
-    
+}
+
+extension SlidingRuler {
+
     // MARK: Tick Management
     
     private func boundaryMet() {
@@ -347,18 +380,20 @@ public struct SlidingRuler<V>: View where V: BinaryFloatingPoint, V.Stride: Bina
     }
     
     private func tickIfNeeded(_ offset0: CGFloat, _ offset1: CGFloat) {
-        guard dragBounds.contains(offset0) && dragBounds.contains(offset1),
-            !offset0.isBound(of: dragBounds) && !offset1.isBound(of: dragBounds) else { return }
+        guard dragBounds.contains(offset0), dragBounds.contains(offset1),
+            !offset0.isBound(of: dragBounds), !offset1.isBound(of: dragBounds) else { return }
         
         let t: CGFloat
         switch tick {
         case .unit: t = cellWidth
-        case .half: t = cellWidth / 2
-        case .tenth: t = cellWidth / 10
+        case .half: t = hasHalf ? cellWidth / 2 : cellWidth
+        case .fraction: t = cellWidth / CGFloat(fractions)
         case .none: return
         }
         
-        if offset1 == 0 || (offset0 < 0) != (offset1 < 0) || Int(offset0 / t) != Int(offset1 / t) {
+        if offset1 == 0 ||
+            (offset0 < 0) != (offset1 < 0) ||
+            Int(offset0 / t) != Int(offset1 / t) {
             valueTick()
         }
     }

@@ -53,7 +53,7 @@ private struct HorizontalPanGesture: UIViewRepresentable {
         private let action: Action
         weak var view: UIView?
         
-        init(_ beginTouch: @escaping () -> (), _ action: @escaping Action) {
+        init(_ beginTouch: @escaping () -> () = { }, _ action: @escaping Action) {
             self.beginTouch = beginTouch
             self.action = action
         }
@@ -63,9 +63,9 @@ private struct HorizontalPanGesture: UIViewRepresentable {
             let velocity = gesture.velocity(in: view)
             let location = gesture.location(in: view)
             let startLocation = location - translation
-            
+
             let value = HorizontalDragGestureValue(state: gesture.state,
-                                                   translation: .init(width: translation.x, height: translation.y),
+                                                   translation: .init(horizontal: translation.x),
                                                    velocity: velocity.x,
                                                    startLocation: startLocation,
                                                    location: location)
