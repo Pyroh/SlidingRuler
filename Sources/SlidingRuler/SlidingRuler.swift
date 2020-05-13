@@ -46,8 +46,8 @@ public struct SlidingRuler<V>: View where V: BinaryFloatingPoint, V.Stride: Bina
     @Binding private var value: V
     private let bounds: ClosedRange<V>
     private let step: S
-    private let stickyMark: TickMark
-    private let tick: TickMark
+    private let snap: Mark
+    private let tick: Mark
     private let editingChangedCallback: (Bool) -> ()
     private let formatter: NumberFormatter?
 
@@ -98,14 +98,14 @@ public struct SlidingRuler<V>: View where V: BinaryFloatingPoint, V.Stride: Bina
     public init(value: Binding<V>,
          in bounds: ClosedRange<V> = -V.infinity...V.infinity,
          step: V.Stride = 1,
-         stickyMark: TickMark = .none,
-         tick: TickMark = .none,
+         snap: Mark = .none,
+         tick: Mark = .none,
          onEditingChanged: @escaping (Bool) -> () = { _ in },
          formatter: NumberFormatter? = nil) {
         self._value = value
         self.bounds = bounds
         self.step = step
-        self.stickyMark = stickyMark
+        self.snap = snap
         self.tick = tick
         self.editingChangedCallback = onEditingChanged
         self.formatter = formatter
@@ -155,7 +155,7 @@ public struct SlidingRuler<V>: View where V: BinaryFloatingPoint, V.Stride: Bina
 }
 
 extension SlidingRuler {
-    
+
     // MARK: Drag Gesture Management
     
     private func horizontalDragAction(withValue value: HorizontalDragGestureValue) {
@@ -259,7 +259,7 @@ extension SlidingRuler {
     private func nearestSnapValue(_ value: V) -> V {
         let t: V
 
-        switch stickyMark {
+        switch snap {
         case .unit: t = V(step)
         case .half: t = V(step / 2)
         case .fraction: t = V(step / S(fractions))

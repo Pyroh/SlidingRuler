@@ -26,7 +26,7 @@
 //  SOFTWARE.
 //
 
-public enum TickMark {
+public enum Mark {
     case none, unit, half, fraction
 }
 
