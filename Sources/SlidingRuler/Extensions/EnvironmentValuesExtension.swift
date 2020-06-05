@@ -29,10 +29,10 @@
 
 import SwiftUI
 
-enum StaticSlideRulerStyleEnvironment {
+enum StaticSlidingRulerStyleEnvironment {
     @Environment(\.slidingRulerStyle.cellWidth) static var cellWidth
     @Environment(\.slidingRulerStyle.cursorAlignment) static var alignment
-    @Environment(\.slidingRulerStyle.isStatic) static var isStatic
+    @Environment(\.slidingRulerStyle.hasMarks) static var hasMarks
 }
 
 struct SlidingRulerStyleEnvironmentKey: EnvironmentKey {
@@ -49,7 +49,7 @@ extension EnvironmentValues {
         set { self[SlidingRulerStyleEnvironmentKey.self] = newValue }
     }
     
-    var slideRulerCellOverflow: Int {
+    var slidingRulerCellOverflow: Int {
         get { self[SlideRulerCellOverflow.self] }
         set { self[SlideRulerCellOverflow.self] = newValue }
     }

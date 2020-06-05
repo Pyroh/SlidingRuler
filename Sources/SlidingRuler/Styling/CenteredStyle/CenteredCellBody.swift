@@ -1,5 +1,5 @@
 //
-//  DefaultSlidingRulerStyle.swift
+//  CenteredCellBody.swift
 //
 //  SlidingRuler
 //
@@ -29,20 +29,21 @@
 
 import SwiftUI
 
-public struct DefaultSlidingRulerStyle: SlidingRulerStyle {
-    public let cursorAlignment: VerticalAlignment = .top
-    
-    public func makeCellBody(configuration: SlidingRulerStyleConfiguation) -> some View {
-        DefaultCellBody(mark: configuration.mark,
-                        bounds: configuration.bounds,
-                        step: configuration.step,
-                        cellWidth: cellWidth,
-                        numberFormatter: configuration.formatter)
-    }
-    
-    public func makeCursorBody() -> some View {
-        NativeCursorBody()
-    }
+struct BlankCenteredCellBody: NativeCellBody {
+    var mark: Double
+    var bounds: ClosedRange<Double>
+    var step: Double
+    var cellWidth: CGFloat
+
+    var scale: some ScaleView { CenteredScaleView(width: cellWidth) }
 }
 
+struct CenteredCellBody: NativeMarkedCellBody {
+    var mark: Double
+    var bounds: ClosedRange<Double>
+    var step: Double
+    var cellWidth: CGFloat
+    var numberFormatter: NumberFormatter?
 
+    var cell: some CellBody { BlankCenteredCellBody(mark: mark, bounds: bounds, step: step, cellWidth: cellWidth) }
+}

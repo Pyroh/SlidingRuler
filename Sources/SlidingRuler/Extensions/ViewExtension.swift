@@ -35,7 +35,7 @@ extension View {
     }
 
     public func slidingRulerCellOverflow(_ overflow: Int) -> some View {
-        environment(\.slideRulerCellOverflow, overflow)
+        environment(\.slidingRulerCellOverflow, overflow)
     }
 }
 
@@ -44,11 +44,11 @@ extension View {
         self.frame(width: size?.width, height: size?.height, alignment: alignment)
     }
 
-    func propagateHeight<K: PreferenceKey>(_ key: K.Type) -> some View where K.Value == CGFloat? {
+    func propagateHeight<K: PreferenceKey>(_ key: K.Type, transform: @escaping (K.Value) -> K.Value = { $0 }) -> some View where K.Value == CGFloat? {
         overlay(
             GeometryReader { proxy in
                 Color.clear
-                    .preference(key: key, value: proxy.frame(in: .local).height)
+                    .preference(key: key, value: transform(proxy.frame(in: .local).height))
             }
         )
     }
@@ -57,11 +57,11 @@ extension View {
         onPreferenceChange(key, perform: { storage.wrappedValue = $0 })
     }
 
-    func propagateWidth<K: PreferenceKey>(_ key: K.Type) -> some View where K.Value == CGFloat? {
+    func propagateWidth<K: PreferenceKey>(_ key: K.Type, transform: @escaping (K.Value) -> K.Value = { $0 }) -> some View where K.Value == CGFloat? {
         overlay(
             GeometryReader { proxy in
                 Color.clear
-                    .preference(key: key, value: proxy.frame(in: .local).width)
+                    .preference(key: key, value: transform(proxy.frame(in: .local).width))
             }
         )
     }

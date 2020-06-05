@@ -30,14 +30,14 @@
 import SwiftUI
 
 struct InfiniteMarkOffsetModifier<V: BinaryFloatingPoint>: AnimatableModifier where V.Stride: BinaryFloatingPoint {
-    @Environment(\.slideRulerCellOverflow) private var overflow
+    @Environment(\.slidingRulerCellOverflow) private var overflow
     
     var value: V
     let step: V.Stride
     
     var offset: Double {
-        let c = V(overflow)
-        return Double((value / V(step) / c).rounded(.towardZero) * c)
+        let overflow = V(self.overflow)
+        return Double((value / V(step) / overflow).rounded(.towardZero) * overflow)
     }
     
     var animatableData: Double {

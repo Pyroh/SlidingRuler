@@ -1,6 +1,6 @@
 //
-//  DefaultSlidingRulerStyle.swift
-//
+//  CellBody.swift
+//  
 //  SlidingRuler
 //
 //  MIT License
@@ -29,20 +29,35 @@
 
 import SwiftUI
 
-public struct DefaultSlidingRulerStyle: SlidingRulerStyle {
-    public let cursorAlignment: VerticalAlignment = .top
-    
-    public func makeCellBody(configuration: SlidingRulerStyleConfiguation) -> some View {
-        DefaultCellBody(mark: configuration.mark,
-                        bounds: configuration.bounds,
-                        step: configuration.step,
-                        cellWidth: cellWidth,
-                        numberFormatter: configuration.formatter)
-    }
-    
-    public func makeCursorBody() -> some View {
-        NativeCursorBody()
-    }
+public protocol CellBody: View, Equatable {
+    associatedtype Scale: ScaleView
+    associatedtype MaskShape: Shape
+
+    var mark: Double { get }
+    var bounds: ClosedRange<Double> { get }
+    var cellBounds: ClosedRange<Double> { get }
+    var step: Double { get }
+    var cellWidth: CGFloat { get }
+
+    var scale: Scale { get }
+    var maskShape: MaskShape { get }
 }
 
+extension CellBody {
+    var cellBounds: ClosedRange<Double> {
+        ClosedRange(uncheckedBounds: (mark - step / 2, mark + step / 2))
+    }
 
+    var body: some View {
+        ZStack {
+            scale
+                .equatable()
+                .foregroundColor(.init(.label))
+                .clipShape(maskShape)
+            scale
+                .equatable()
+                .foregroundColor(.init(.tertiaryLabel))
+        }
+        .frame(width: cellWidth)
+    }
+}

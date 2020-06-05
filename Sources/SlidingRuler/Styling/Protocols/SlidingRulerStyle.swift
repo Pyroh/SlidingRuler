@@ -1,5 +1,5 @@
 //
-//  DefaultSlidingRulerStyle.swift
+//  SlidingRulerStyle.swift
 //
 //  SlidingRuler
 //
@@ -29,20 +29,23 @@
 
 import SwiftUI
 
-public struct DefaultSlidingRulerStyle: SlidingRulerStyle {
-    public let cursorAlignment: VerticalAlignment = .top
+public protocol SlidingRulerStyle {
+    associatedtype CellBody: View
+    associatedtype CursorBody: View
+
+    var fractions: Int { get }
+    var cellWidth: CGFloat { get }
+    var cursorAlignment: VerticalAlignment { get }
+    var hasMarks: Bool { get }
+    var hasHalf: Bool { get }
     
-    public func makeCellBody(configuration: SlidingRulerStyleConfiguation) -> some View {
-        DefaultCellBody(mark: configuration.mark,
-                        bounds: configuration.bounds,
-                        step: configuration.step,
-                        cellWidth: cellWidth,
-                        numberFormatter: configuration.formatter)
-    }
-    
-    public func makeCursorBody() -> some View {
-        NativeCursorBody()
-    }
+    func makeCellBody(configuration: SlidingRulerStyleConfiguation) -> CellBody
+    func makeCursorBody() -> CursorBody
 }
 
-
+public extension SlidingRulerStyle {
+    var fractions: Int { 10 }
+    var cellWidth: CGFloat { 120 }
+    var hasMarks: Bool { true }
+    var hasHalf: Bool { true }
+}

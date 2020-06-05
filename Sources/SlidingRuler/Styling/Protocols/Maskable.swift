@@ -1,5 +1,5 @@
 //
-//  DefaultSlidingRulerStyle.swift
+//  Maskable.swift
 //
 //  SlidingRuler
 //
@@ -26,23 +26,20 @@
 //  SOFTWARE.
 //
 
+import CoreGraphics
 
-import SwiftUI
+public protocol Maskable {
+    var unitMarkWidth: CGFloat { get }
+    var halfMarkWidth: CGFloat { get }
+    var fractionFractionWidth: CGFloat { get }
 
-public struct DefaultSlidingRulerStyle: SlidingRulerStyle {
-    public let cursorAlignment: VerticalAlignment = .top
-    
-    public func makeCellBody(configuration: SlidingRulerStyleConfiguation) -> some View {
-        DefaultCellBody(mark: configuration.mark,
-                        bounds: configuration.bounds,
-                        step: configuration.step,
-                        cellWidth: cellWidth,
-                        numberFormatter: configuration.formatter)
-    }
-    
-    public func makeCursorBody() -> some View {
-        NativeCursorBody()
-    }
+    var unitMarkOffset: CGFloat { get }
+    var halfMarkOffset: CGFloat { get }
+    var fractionMarkOffset: CGFloat { get }
 }
 
-
+extension Maskable {
+    var unitMarkOffset: CGFloat { 0 }
+    var halfMarkOffset: CGFloat { 0 }
+    var fractionMarkOffset: CGFloat { 0 }
+}

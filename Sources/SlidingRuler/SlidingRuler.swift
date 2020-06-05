@@ -34,13 +34,14 @@ import SmoothOperators
 public struct SlidingRuler<V>: View where V: BinaryFloatingPoint, V.Stride: BinaryFloatingPoint {
     typealias S = V.Stride
 
+    @Environment(\.slidingRulerCellOverflow) private var cellOverflow
+
     @Environment(\.slidingRulerStyle) private var style
     @Environment(\.slidingRulerStyle.cellWidth) private var cellWidth
     @Environment(\.slidingRulerStyle.cursorAlignment) private var verticalCursorAlignment
     @Environment(\.slidingRulerStyle.fractions) private var fractions
     @Environment(\.slidingRulerStyle.hasHalf) private var hasHalf
-    
-    @Environment(\.slideRulerCellOverflow) private var cellOverflow
+
     @Environment(\.layoutDirection) private var layoutDirection
     
     @Binding private var value: V
@@ -69,9 +70,11 @@ public struct SlidingRuler<V>: View where V: BinaryFloatingPoint, V.Stride: Bina
     private var dragBounds: ClosedRange<CGFloat> {
         (-CGFloat(bounds.upperBound) * cellWidth / CGFloat(step))...(-CGFloat(bounds.lowerBound) * cellWidth / CGFloat(step))
     }
-    private var shouldReleaseRubberBand: Bool { !dragBounds.contains(dragOffset.width) }
-    private var clampedValue: V { value.clamped(to: bounds) }
+    private var isRubberBandNeedingRelease: Bool { !dragBounds.contains(dragOffset.width) }
 
+    private var cellWidthOverflow: CGFloat { cellWidth * CGFloat(cellOverflow) }
+    /// Current value clamped to the receiver's value bounds.
+    private var clampedValue: V { value.clamped(to: bounds) }
     private var effectiveOffset: CGSize {
         switch state {
         case .idle:
@@ -82,7 +85,6 @@ public struct SlidingRuler<V>: View where V: BinaryFloatingPoint, V.Stride: Bina
             return dragOffset
         }
     }
-
     private var effectiveValue: V {
         switch state {
         case .idle, .flicking:
@@ -130,7 +132,7 @@ public struct SlidingRuler<V>: View where V: BinaryFloatingPoint, V.Stride: Bina
                 Ruler(cells: self.cells, step: Double(self.step), markOffset: self.markOffset, bounds: self.bounds, formatter: self.formatter)
                     .equatable()
                     .animation(nil)
-                    .modifier(InfiniteOffsetEffect(offset: self.effectiveOffset, maxOffset: 240))
+                    .modifier(InfiniteOffsetEffect(offset: self.effectiveOffset, maxOffset: self.cellWidthOverflow))
                 self.style.makeCursorBody()
             }
             .frame(width: proxy.size.width)
@@ -154,10 +156,8 @@ public struct SlidingRuler<V>: View where V: BinaryFloatingPoint, V.Stride: Bina
     }
 }
 
+// MARK: Drag Gesture Management
 extension SlidingRuler {
-
-    // MARK: Drag Gesture Management
-    
     private func horizontalDragAction(withValue value: HorizontalDragGestureValue) {
         switch value.state {
         case .began: horizontalDragBegan(value)
@@ -195,7 +195,7 @@ extension SlidingRuler {
     }
     
     private func horizontalDragEnded(_ value: HorizontalDragGestureValue) {
-        if shouldReleaseRubberBand {
+        if isRubberBandNeedingRelease {
             self.releaseRubberBand()
             self.endDragSession()
         } else if abs(value.velocity) > 40 {
@@ -213,10 +213,8 @@ extension SlidingRuler {
     }
 }
 
+// MARK: Value Management
 extension SlidingRuler {
-
-    // MARK: Value Management
-    
     private func value(fromOffset offset: CGSize) -> V {
         self.directionalValue(-V(offset.width / cellWidth) * V(step))
     }
@@ -283,10 +281,8 @@ extension SlidingRuler {
     }
 }
 
+// MARK: Control Update
 extension SlidingRuler {
-
-    // MARK: Control Update
-    
     private func updateCellsIfNeeded() {
         guard let controlWidth = controlWidth else { return }
         let count = (Int(ceil(controlWidth / cellWidth)) + 4).nextOdd()
@@ -299,10 +295,8 @@ extension SlidingRuler {
     }
 }
 
+// MARK: Physic Simulation
 extension SlidingRuler {
-
-    // MARK: Physic Simulation
-    
     private func applyInertia(startLoc: CGPoint, releaseLoc: CGPoint, initialVelocity: CGFloat) {
         let friction = 2345.6
         let bounceFriction = 45678.9
@@ -324,7 +318,7 @@ extension SlidingRuler {
                 self.dragOffset = self.applyRubber(to: newOffset)
             }
             
-            if !self.shouldReleaseRubberBand {
+            if !self.isRubberBandNeedingRelease {
                 speed = speed - CGFloat(friction * timeFrame)
             } else {
                 speed = speed - CGFloat(bounceFriction * timeFrame)
@@ -332,7 +326,7 @@ extension SlidingRuler {
             
             if speed <= 0 { self.inertialTimer?.stop() }
         }, completion: { (completed) in
-            if self.shouldReleaseRubberBand {
+            if self.isRubberBandNeedingRelease {
                 self.releaseRubberBand()
             } else if completed {
                 self.state = .idle
@@ -370,10 +364,8 @@ extension SlidingRuler {
     }
 }
 
+// MARK: Tick Management
 extension SlidingRuler {
-
-    // MARK: Tick Management
-    
     private func boundaryMet() {
         let fg = UIImpactFeedbackGenerator(style: .rigid)
         fg.impactOccurred(intensity: 0.667)

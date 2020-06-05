@@ -31,7 +31,11 @@ import Foundation
 
 extension Comparable {
     func clamp(_ x: Self, _ min: Self, _ max: Self) -> Self {
-        return Swift.min(Swift.max(x, min), max)
+        Swift.min(Swift.max(x, min), max)
+    }
+    
+    mutating func clampled(_ min: Self, _ max: Self) {
+        self = clamp(self, min, max)
     }
     
     func clamped(to range: ClosedRange<Self>) -> Self {

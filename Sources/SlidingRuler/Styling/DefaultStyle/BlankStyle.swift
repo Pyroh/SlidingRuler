@@ -1,6 +1,6 @@
 //
-//  StyleProtocol.swift
-//
+//  BlankStyle.swift
+//  
 //  SlidingRuler
 //
 //  MIT License
@@ -29,23 +29,17 @@
 
 import SwiftUI
 
-public protocol SlidingRulerStyle {
-    associatedtype CellBody: View
-    associatedtype CursorBody: View
+public struct BlankSlidingRulerStyle: SlidingRulerStyle {
+    public let cursorAlignment: VerticalAlignment = .top
 
-    var fractions: Int { get }
-    var cellWidth: CGFloat { get }
-    var cursorAlignment: VerticalAlignment { get }
-    var isStatic: Bool { get }
-    var hasHalf: Bool { get }
-    
-    func makeCellBody(configuration: SlidingRulerStyleConfiguation) -> CellBody
-    func makeCursorBody() -> CursorBody
-}
+    public func makeCellBody(configuration: SlidingRulerStyleConfiguation) -> some View {
+        BlankCellBody(mark: configuration.mark,
+                      bounds: configuration.bounds,
+                      step: configuration.step,
+                      cellWidth: cellWidth)
+    }
 
-public extension SlidingRulerStyle {
-    var fractions: Int { 10 }
-    var cellWidth: CGFloat { 120 }
-    var isStatic: Bool { false }
-    var hasHalf: Bool { true }
+    public func makeCursorBody() -> some View {
+        NativeCursorBody()
+    }
 }

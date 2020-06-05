@@ -1,5 +1,5 @@
 //
-//  AnySlidingRulerStyle.swift
+//  NativeCellBody.swift
 //
 //  SlidingRuler
 //
@@ -29,33 +29,42 @@
 
 import SwiftUI
 
-struct AnySlidingRulerStyle: SlidingRulerStyle {
-    private let cellProvider: (SlidingRulerStyleConfiguation) -> AnyView
-    private let cursorProvider: () -> AnyView
+protocol NativeCellBody: CellBody { }
+extension NativeCellBody {
+    var maskShape: some Shape {
+        let validRange = bounds.clamped(to: cellBounds)
+        let boundaryMet = validRange != cellBounds
+        let leftOffset: CGFloat
+        let rightOffset: CGFloat
 
-    let fractions: Int
-    let cellWidth: CGFloat
-    let cursorAlignment: VerticalAlignment
-    let hasMarks: Bool
-    
-    init<T: SlidingRulerStyle> (style: T) {
-        self.cellProvider = { (configuration: SlidingRulerStyleConfiguation) -> AnyView in
-            AnyView(style.makeCellBody(configuration: configuration))
+        if boundaryMet {
+            leftOffset = abs(CGFloat((validRange.lowerBound - cellBounds.lowerBound) / step) * cellWidth)
+            rightOffset = abs(CGFloat((cellBounds.upperBound - validRange.upperBound) / step) * cellWidth)
+        } else {
+            leftOffset = .zero
+            rightOffset = .zero
         }
-        self.cursorProvider = {
-            AnyView(style.makeCursorBody())
-        }
-        self.fractions = style.fractions
-        self.cellWidth = style.cellWidth
-        self.cursorAlignment = style.cursorAlignment
-        self.hasMarks = style.hasMarks
+        let maskWidth = cellWidth - (leftOffset + rightOffset)
+
+        return ScaleMask(originX: leftOffset, width: maskWidth)
     }
-    
-    func makeCellBody(configuration: SlidingRulerStyleConfiguation) -> some View {
-        cellProvider(configuration)
+}
+
+private struct ScaleMask: Shape {
+    let originX: CGFloat
+    let centerMaskWidth: CGFloat
+
+    init(originX: CGFloat, width: CGFloat) {
+        self.originX = originX
+        self.centerMaskWidth = width
     }
-    
-    func makeCursorBody() -> some View {
-        cursorProvider()
+
+    func path(in rect: CGRect) -> Path {
+        var p = Path()
+        let centerRect = CGRect(origin: .init(x: originX, y: 0),
+                                size: .init(width: centerMaskWidth, height: rect.height))
+        p.addRect(centerRect)
+
+        return p
     }
 }

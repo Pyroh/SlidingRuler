@@ -1,6 +1,6 @@
 //
-//  DefaultSlidingRulerStyle.swift
-//
+//  BlankCenteredStyle.swift
+//  
 //  SlidingRuler
 //
 //  MIT License
@@ -29,20 +29,17 @@
 
 import SwiftUI
 
-public struct DefaultSlidingRulerStyle: SlidingRulerStyle {
+public struct BlankCenteredSlidingRulerStyle: SlidingRulerStyle {
     public let cursorAlignment: VerticalAlignment = .top
-    
+
     public func makeCellBody(configuration: SlidingRulerStyleConfiguation) -> some View {
-        DefaultCellBody(mark: configuration.mark,
-                        bounds: configuration.bounds,
-                        step: configuration.step,
-                        cellWidth: cellWidth,
-                        numberFormatter: configuration.formatter)
+        BlankCenteredCellBody(mark: configuration.mark,
+                              bounds: configuration.bounds,
+                              step: configuration.step,
+                              cellWidth: cellWidth)
     }
-    
+
     public func makeCursorBody() -> some View {
         NativeCursorBody()
     }
 }
-
-

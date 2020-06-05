@@ -1,5 +1,5 @@
 //
-//  DefaultCursorBody.swift
+//  ScaleView.swift
 //
 //  SlidingRuler
 //
@@ -26,12 +26,27 @@
 //  SOFTWARE.
 //
 
+
 import SwiftUI
 
-struct DefaultCursorBody: View {
+public protocol ScaleView: View, Equatable, Maskable {
+    associatedtype ScaleShape: Shape
+
+    var shape: ScaleShape { get }
+    var width: CGFloat { get }
+    var height: CGFloat { get }
+}
+
+extension ScaleView {
     var body: some View {
-        Capsule()
-            .foregroundColor(.red)
-            .frame(width: UIScreen.main.scale == 3 ? 1.8 : 2, height: 30)
+        shape
+            .frame(size: .init(width: width, height: height))
+            .fixedSize()
+    }
+
+    static func ==(lhs: Self, rhs: Self) -> Bool {
+        lhs.width == rhs.width && lhs.height == rhs.height
     }
 }
+
+

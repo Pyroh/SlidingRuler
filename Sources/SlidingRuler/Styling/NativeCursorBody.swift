@@ -1,5 +1,5 @@
 //
-//  DefaultSlidingRulerStyle.swift
+//  DefaultCursorBody.swift
 //
 //  SlidingRuler
 //
@@ -26,23 +26,18 @@
 //  SOFTWARE.
 //
 
-
 import SwiftUI
 
-public struct DefaultSlidingRulerStyle: SlidingRulerStyle {
-    public let cursorAlignment: VerticalAlignment = .top
-    
-    public func makeCellBody(configuration: SlidingRulerStyleConfiguation) -> some View {
-        DefaultCellBody(mark: configuration.mark,
-                        bounds: configuration.bounds,
-                        step: configuration.step,
-                        cellWidth: cellWidth,
-                        numberFormatter: configuration.formatter)
-    }
-    
-    public func makeCursorBody() -> some View {
-        NativeCursorBody()
+public struct NativeCursorBody: View {
+    public var body: some View {
+        Capsule()
+            .foregroundColor(.red)
+            .frame(width: UIScreen.main.scale == 3 ? 1.8 : 2, height: 30)
     }
 }
 
-
+struct CursorBody_Previews: PreviewProvider {
+    static var previews: some View {
+        NativeCursorBody()
+    }
+}

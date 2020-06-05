@@ -1,5 +1,5 @@
 //
-//  DefaultSlidingRulerStyle.swift
+//  NativeMarkedCellBody.swift
 //
 //  SlidingRuler
 //
@@ -29,20 +29,22 @@
 
 import SwiftUI
 
-public struct DefaultSlidingRulerStyle: SlidingRulerStyle {
-    public let cursorAlignment: VerticalAlignment = .top
-    
-    public func makeCellBody(configuration: SlidingRulerStyleConfiguation) -> some View {
-        DefaultCellBody(mark: configuration.mark,
-                        bounds: configuration.bounds,
-                        step: configuration.step,
-                        cellWidth: cellWidth,
-                        numberFormatter: configuration.formatter)
+protocol NativeMarkedCellBody: MarkedCellBody { }
+extension NativeMarkedCellBody {
+    var markColor: Color {
+        bounds.contains(mark) ? .init(.label) : .init(.tertiaryLabel)
     }
-    
-    public func makeCursorBody() -> some View {
-        NativeCursorBody()
+    var displayMark: String { numberFormatter?.string(for: mark) ?? "\(mark)" }
+
+    var body: some View {
+        VStack {
+            cell
+            Spacer()
+            Text(verbatim: displayMark)
+                .font(Font.footnote.monospacedDigit())
+                .foregroundColor(markColor)
+                .lineLimit(1)
+        }
+        .fixedSize()
     }
 }
-
-
