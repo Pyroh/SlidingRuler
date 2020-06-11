@@ -29,14 +29,12 @@
 
 import SwiftUI
 
-public protocol Fractionable {
+public protocol FractionableView: View {
     static var fractions: Int { get }
     static var hasHalf: Bool { get }
 }
 
-extension Fractionable {
+extension FractionableView {
     static var fractions: Int { 10 }
     static var hasHalf: Bool { fractions.isEven }
 }
-
-public typealias FractionableView = View&Fractionable
