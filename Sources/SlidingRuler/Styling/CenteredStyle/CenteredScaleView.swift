@@ -64,7 +64,7 @@ struct CenteredScaleView: ScaleView {
 
     var unitMarkWidth: CGFloat { shape.unitMarkSize.width }
     var halfMarkWidth: CGFloat { shape.halfMarkSize.width }
-    var fractionFractionWidth: CGFloat { shape.fractionMarkSize.width }
+    var fractionMarkWidth: CGFloat { shape.fractionMarkSize.width }
 
     init(width: CGFloat, height: CGFloat = 30) {
         self.width = width

@@ -1,6 +1,6 @@
 //
-//  CellBody.swift
-//  
+//  AnyFractionableView.swift
+//
 //  SlidingRuler
 //
 //  MIT License
@@ -29,43 +29,10 @@
 
 import SwiftUI
 
-public protocol CellBody: FractionableView, Equatable {
-    associatedtype Scale: ScaleView
-    associatedtype MaskShape: Shape
-
-    var mark: Double { get }
-    var bounds: ClosedRange<Double> { get }
-    var cellBounds: ClosedRange<Double> { get }
-    var step: Double { get }
-    var cellWidth: CGFloat { get }
-
-    var scale: Scale { get }
-    var maskShape: MaskShape { get }
+struct AnyFractionableView: FractionableView {
+    static var fractions: Int { 0 }
+    private let view: AnyView
+    var body: some View { view }
+    init<V: View>(_ view: V) { self.view = AnyView(view) }
 }
 
-extension CellBody {
-    static var fractions: Int { Scale.fractions }
-
-    var cellBounds: ClosedRange<Double> {
-        ClosedRange(uncheckedBounds: (mark - step / 2, mark + step / 2))
-    }
-
-    var isComplete: Bool { bounds.contains(cellBounds) }
-
-    var body: some View {
-        ZStack {
-            scale
-                .equatable()
-                .foregroundColor(.init(.label))
-                .clipShape(maskShape)
-            scale
-                .equatable()
-                .foregroundColor(.init(.tertiaryLabel))
-        }
-        .frame(width: cellWidth)
-    }
-
-    static func ==(_ lhs: Self, _ rhs: Self) -> Bool {
-        lhs.isComplete && rhs.isComplete
-    }
-}

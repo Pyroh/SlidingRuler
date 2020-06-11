@@ -28,31 +28,89 @@
 
 
 import SwiftUI
+import SmoothOperators
 
 protocol NativeCellBody: CellBody { }
 extension NativeCellBody {
     var maskShape: some Shape {
-        let validRange = bounds.clamped(to: cellBounds)
-        let boundaryMet = validRange != cellBounds
-        let leftOffset: CGFloat
-        let rightOffset: CGFloat
+        guard !isComplete else { return ScaleMask(originX: .zero, width: cellWidth) }
+        guard cellBounds.overlaps(bounds) else { return ScaleMask.zero }
 
-        if boundaryMet {
-            leftOffset = abs(CGFloat((validRange.lowerBound - cellBounds.lowerBound) / step) * cellWidth)
-            rightOffset = abs(CGFloat((cellBounds.upperBound - validRange.upperBound) / step) * cellWidth)
+        let availableRange = bounds.clamped(to: cellBounds)
+
+        let leadingOffset: CGFloat = adjustOffset(abs(CGFloat((availableRange.lowerBound - cellBounds.lowerBound) / step) * cellWidth))
+        let trailingOffset: CGFloat = adjustOffset(abs(CGFloat((cellBounds.upperBound - availableRange.upperBound) / step) * cellWidth))
+
+        let maskWidth = cellWidth - (leadingOffset + trailingOffset)
+
+        return ScaleMask(originX: leadingOffset, width: maskWidth)
+    }
+
+    private var hasHalf: Bool { Scale.hasHalf }
+    private var fractions: Int { Self.fractions }
+    private var fractionWidth: CGFloat { cellWidth / CGFloat(fractions) }
+
+    private func areaLimits(_ area: Int) -> (leading: CGFloat, trailing: CGFloat) {
+        let leadingLimit: CGFloat
+        let trailingLimit: CGFloat
+
+        let leadingOffset = CGFloat(area) * fractionWidth
+        let trailingOffset = CGFloat(area+) * fractionWidth
+
+        if hasHalf {
+            let leadingUnitArea = fractions / 2
+            let trailingUnitArea = leadingUnitArea-
+
+            if area == 0 { leadingLimit = scale.halfMarkWidth / 2 + scale.halfMarkOffset }
+            else if area == leadingUnitArea { leadingLimit = leadingOffset + scale.unitMarkWidth / 2 + scale.unitMarkOffset }
+            else { leadingLimit = leadingOffset + scale.fractionMarkWidth / 2 + scale.fractionMarkOffset }
+
+            if area == fractions- { trailingLimit = trailingOffset - scale.unitMarkWidth / 2 + scale.unitMarkOffset }
+            else if area == trailingUnitArea { trailingLimit = trailingOffset - scale.unitMarkWidth / 2 + scale.unitMarkOffset }
+            else { trailingLimit = trailingOffset - scale.fractionMarkWidth / 2 + scale.fractionMarkOffset }
         } else {
-            leftOffset = .zero
-            rightOffset = .zero
-        }
-        let maskWidth = cellWidth - (leftOffset + rightOffset)
+            if area == 0 { leadingLimit = .nan }
+            else if Scale.hasHalf && area == (fractions / 2) { leadingLimit = CGFloat(area) * fractionWidth + scale.halfMarkWidth / 2 }
+            else { leadingLimit = CGFloat(area) * fractionWidth + fractionWidth / 2 }
 
-        return ScaleMask(originX: leftOffset, width: maskWidth)
+            if area == fractions - 1 { trailingLimit = cellWidth -  scale.unitMarkWidth / 2 }
+            else if Scale.hasHalf && area == (fractions / 2 - 1) { trailingLimit = CGFloat(area + 1) * fractionWidth + scale.halfMarkWidth / 2 }
+            else { trailingLimit = CGFloat(area + 1) * fractionWidth - fractionWidth / 2 }
+        }
+
+        return (leadingLimit, trailingLimit)
+    }
+
+    private func adjustOffset(_ offset: CGFloat) -> CGFloat {
+        guard offset > 0 else { return offset }
+
+        let area = offset.truncatingRemainder(dividingBy: fractionWidth) > 0 ?
+            Int(offset / fractionWidth) :
+            Int(offset / fractionWidth)-
+        let limits = areaLimits(area)
+
+        if offset < limits.leading { return limits.leading }
+        else if offset > limits.trailing { return limits.trailing }
+        else { return offset }
+    }
+
+    private func adjustTrailingOffset(_ offset: CGFloat) -> CGFloat {
+        guard offset < cellWidth else { return offset }
+
+        let area = Int(offset / fractionWidth)
+        let limits = areaLimits(area)
+
+        if offset < limits.leading { return limits.leading }
+        else if offset > limits.trailing { return limits.trailing }
+        else { return offset }
     }
 }
 
 private struct ScaleMask: Shape {
     let originX: CGFloat
     let centerMaskWidth: CGFloat
+
+    static var zero: Self { .init(originX: .zero, width: .zero) }
 
     init(originX: CGFloat, width: CGFloat) {
         self.originX = originX

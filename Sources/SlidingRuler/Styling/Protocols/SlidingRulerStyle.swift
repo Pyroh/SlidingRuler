@@ -30,7 +30,7 @@
 import SwiftUI
 
 public protocol SlidingRulerStyle {
-    associatedtype CellBody: View
+    associatedtype CellBody: FractionableView
     associatedtype CursorBody: View
 
     var fractions: Int { get }
@@ -38,14 +38,14 @@ public protocol SlidingRulerStyle {
     var cursorAlignment: VerticalAlignment { get }
     var hasMarks: Bool { get }
     var hasHalf: Bool { get }
-    
+
     func makeCellBody(configuration: SlidingRulerStyleConfiguation) -> CellBody
     func makeCursorBody() -> CursorBody
 }
 
 public extension SlidingRulerStyle {
-    var fractions: Int { 10 }
+    var fractions: Int { CellBody.fractions }
     var cellWidth: CGFloat { 120 }
     var hasMarks: Bool { true }
-    var hasHalf: Bool { true }
+    var hasHalf: Bool { CellBody.hasHalf }
 }

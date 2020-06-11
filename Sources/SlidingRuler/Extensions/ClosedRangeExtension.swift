@@ -1,7 +1,7 @@
 //
-//  Maskable.swift
-//
-//  SlidingRuler
+//  ClosedRangeExtension.swift
+//  
+//  SlidingRulerTestingBoard
 //
 //  MIT License
 //
@@ -26,20 +26,9 @@
 //  SOFTWARE.
 //
 
-import CoreGraphics
 
-public protocol Maskable {
-    var unitMarkWidth: CGFloat { get }
-    var halfMarkWidth: CGFloat { get }
-    var fractionFractionWidth: CGFloat { get }
-
-    var unitMarkOffset: CGFloat { get }
-    var halfMarkOffset: CGFloat { get }
-    var fractionMarkOffset: CGFloat { get }
-}
-
-extension Maskable {
-    var unitMarkOffset: CGFloat { 0 }
-    var halfMarkOffset: CGFloat { 0 }
-    var fractionMarkOffset: CGFloat { 0 }
+extension ClosedRange {
+    func contains(_ range: Self) -> Bool {
+        self.contains(range.lowerBound) && self.contains(range.upperBound)
+    }
 }

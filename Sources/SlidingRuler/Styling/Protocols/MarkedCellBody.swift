@@ -29,7 +29,7 @@
 
 import SwiftUI
 
-public protocol MarkedCellBody: View, Equatable {
+public protocol MarkedCellBody: FractionableView {
     associatedtype Cell: CellBody
 
     var mark: Double { get }
@@ -40,4 +40,8 @@ public protocol MarkedCellBody: View, Equatable {
     var numberFormatter: NumberFormatter? { get }
     var markColor: Color { get }
     var cell: Cell { get }
+}
+
+extension MarkedCellBody {
+    static var fractions: Int { Cell.fractions }
 }

@@ -34,7 +34,7 @@ extension Comparable {
         Swift.min(Swift.max(x, min), max)
     }
     
-    mutating func clampled(_ min: Self, _ max: Self) {
+    mutating func clampled(to min: Self, _ max: Self) {
         self = clamp(self, min, max)
     }
     

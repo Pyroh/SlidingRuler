@@ -38,7 +38,7 @@ extension NativeMarkedCellBody {
 
     var body: some View {
         VStack {
-            cell
+            cell.equatable()
             Spacer()
             Text(verbatim: displayMark)
                 .font(Font.footnote.monospacedDigit())
