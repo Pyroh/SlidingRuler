@@ -40,7 +40,7 @@ struct SlidingRulerStyleEnvironmentKey: EnvironmentKey {
 }
 
 struct SlideRulerCellOverflow: EnvironmentKey {
-    static var defaultValue: Int { 2 }
+    static var defaultValue: Int { 3 }
 }
 
 extension EnvironmentValues {

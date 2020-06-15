@@ -28,5 +28,5 @@
 
 
 enum SlidingRulerState {
-    case idle, dragging, animating, flicking, touched
+    case idle, dragging, animating, flicking
 }

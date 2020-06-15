@@ -82,22 +82,11 @@ extension NativeCellBody {
     }
 
     private func adjustOffset(_ offset: CGFloat) -> CGFloat {
-        guard offset > 0 else { return offset }
+        guard !offset.isZero else { return offset }
 
         let area = offset.truncatingRemainder(dividingBy: fractionWidth) > 0 ?
             Int(offset / fractionWidth) :
             Int(offset / fractionWidth)-
-        let limits = areaLimits(area)
-
-        if offset < limits.leading { return limits.leading }
-        else if offset > limits.trailing { return limits.trailing }
-        else { return offset }
-    }
-
-    private func adjustTrailingOffset(_ offset: CGFloat) -> CGFloat {
-        guard offset < cellWidth else { return offset }
-
-        let area = Int(offset / fractionWidth)
         let limits = areaLimits(area)
 
         if offset < limits.leading { return limits.leading }

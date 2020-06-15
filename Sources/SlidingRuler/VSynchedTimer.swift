@@ -66,7 +66,7 @@ private final class SynchedTimer {
         if isRunning {
             isRunning.toggle()
             displayLink?.invalidate()
-            completionBlock?(false)
+            NextLoop { self.completionBlock?(false) }
         }
     }
     

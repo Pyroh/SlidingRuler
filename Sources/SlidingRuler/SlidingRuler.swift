@@ -98,6 +98,7 @@ public struct SlidingRuler<V>: View where V: BinaryFloatingPoint, V.Stride: Bina
     private var cellWidthOverflow: CGFloat { cellWidth * CGFloat(cellOverflow) }
     /// Current value clamped to the receiver's value bounds.
     private var clampedValue: V { value.clamped(to: bounds) }
+
     /// Ruler offset used to render the control depending on the state.
     private var effectiveOffset: CGSize {
         switch state {
@@ -147,17 +148,32 @@ public struct SlidingRuler<V>: View where V: BinaryFloatingPoint, V.Stride: Bina
     }
     
     public var body: some View {
+        let renderedValue: V
+        let renderedOffset: CGSize
+
         switch self.state {
-        case .animating:
-            NextLoop { self.state = .idle }
         case .flicking:
-            NextLoop {
-                if self.value != self.lastValueSet {
-                    self.inertialTimer?.cancel()
-                    self.state = .idle
-                }
+            if self.value != self.lastValueSet {
+                self.inertialTimer?.cancel()
+                NextLoop { self.state = .idle }
+                renderedValue = clampedValue ?? 0
+                renderedOffset = self.offset(fromValue: renderedValue)
+            } else {
+                fallthrough
             }
-        default: break
+        case .dragging:
+            renderedOffset = dragOffset
+            renderedValue = self.value(fromOffset: renderedOffset)
+        case .animating:
+            if value == animatedValue {
+                NextLoop { self.state = .idle }
+            }
+            print(value, animatedValue, $animatedValue.transaction)
+            renderedValue = animatedValue
+            renderedOffset = self.offset(fromValue: renderedValue)
+        case .idle:
+            renderedValue = clampedValue ?? 0
+            renderedOffset = self.offset(fromValue: renderedValue)
         }
 
         return GeometryReader { proxy in
@@ -165,7 +181,7 @@ public struct SlidingRuler<V>: View where V: BinaryFloatingPoint, V.Stride: Bina
                 Ruler(cells: self.cells, step: Double(self.step), markOffset: self.markOffset, bounds: self.bounds, formatter: self.formatter)
                     .equatable()
                     .animation(nil)
-                    .modifier(InfiniteOffsetEffect(offset: self.effectiveOffset, maxOffset: self.cellWidthOverflow))
+                    .modifier(InfiniteOffsetEffect(offset: renderedOffset, maxOffset: self.cellWidthOverflow))
                 self.style.makeCursorBody()
             }
             .frame(width: proxy.size.width)
@@ -174,7 +190,7 @@ public struct SlidingRuler<V>: View where V: BinaryFloatingPoint, V.Stride: Bina
             .fixedSize(horizontal: false, vertical: true)
         }
         .onHorizontalDragGesture(initialTouch: firstTouchHappened, perform: horizontalDragAction(withValue:))
-        .modifier(InfiniteMarkOffsetModifier(effectiveValue, step: step))
+        .modifier(InfiniteMarkOffsetModifier(renderedValue, step: step))
         .onPreferenceChange(MarkOffsetPreferenceKey.self) { self.markOffset = $0 }
         .onPreferenceChange(ControlWidthPreferenceKey.self) {
             self.controlWidth = $0
@@ -331,7 +347,7 @@ extension SlidingRuler {
     /// Adjusts the number of cells as the control size changes.
     private func updateCellsIfNeeded() {
         guard let controlWidth = controlWidth else { return }
-        let count = (Int(ceil(controlWidth / cellWidth)) + 4).nextOdd()
+        let count = (Int(ceil(controlWidth / cellWidth)) + cellOverflow * 2).nextOdd()
         if count != cells.count { self.populateCells(count: count) }
     }
 
@@ -359,7 +375,6 @@ extension SlidingRuler {
         state = .flicking
         
         inertialTimer = .init(animations: { (timeFrame) in
-            guard self.state == .flicking else { return }
             location += direction * speed * CGFloat(timeFrame)
             let translation = CGSize(horizontal: location - startLoc.x)
             let newOffset = self.directionalOffset(translation + self.referenceOffset)
