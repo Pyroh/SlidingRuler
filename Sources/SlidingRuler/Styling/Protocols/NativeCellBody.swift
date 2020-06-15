@@ -38,8 +38,8 @@ extension NativeCellBody {
 
         let availableRange = bounds.clamped(to: cellBounds)
 
-        let leadingOffset: CGFloat = adjustOffset(abs(CGFloat((availableRange.lowerBound - cellBounds.lowerBound) / step) * cellWidth))
-        let trailingOffset: CGFloat = adjustOffset(abs(CGFloat((cellBounds.upperBound - availableRange.upperBound) / step) * cellWidth))
+        let leadingOffset: CGFloat = adjustOffset(abs(CGFloat((availableRange.lowerBound - cellBounds.lowerBound) / step) * cellWidth).approximated())
+        let trailingOffset: CGFloat = adjustOffset(abs(CGFloat((cellBounds.upperBound - availableRange.upperBound) / step) * cellWidth).approximated())
 
         let maskWidth = cellWidth - (leadingOffset + trailingOffset)
 

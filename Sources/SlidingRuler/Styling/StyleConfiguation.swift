@@ -28,10 +28,11 @@
 
 
 import Foundation
+import CoreGraphics
 
 public struct SlidingRulerStyleConfiguation {
-    let mark: Double
-    let bounds: ClosedRange<Double>
-    let step: Double
+    let mark: CGFloat
+    let bounds: ClosedRange<CGFloat>
+    let step: CGFloat
     let formatter: NumberFormatter?
 }

@@ -30,18 +30,18 @@
 import SwiftUI
 
 struct BlankCellBody: NativeCellBody {
-    var mark: Double
-    var bounds: ClosedRange<Double>
-    var step: Double
+    var mark: CGFloat
+    var bounds: ClosedRange<CGFloat>
+    var step: CGFloat
     var cellWidth: CGFloat
 
     var scale: some ScaleView { DefaultScaleView(width: cellWidth) }
 }
 
 struct DefaultCellBody: NativeMarkedCellBody {
-    var mark: Double
-    var bounds: ClosedRange<Double>
-    var step: Double
+    var mark: CGFloat
+    var bounds: ClosedRange<CGFloat>
+    var step: CGFloat
     var cellWidth: CGFloat
     var numberFormatter: NumberFormatter?
 

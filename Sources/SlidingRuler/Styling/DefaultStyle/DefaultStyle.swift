@@ -47,7 +47,7 @@ public struct DefaultSlidingRulerStyle: SlidingRulerStyle {
 
 struct DefaultStyle_Previews: PreviewProvider {
     struct CellTrio: View {
-        let range: ClosedRange<Double>
+        let range: ClosedRange<CGFloat>
         let width: CGFloat
 
         var body: some View {

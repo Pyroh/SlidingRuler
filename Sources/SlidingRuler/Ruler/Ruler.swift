@@ -29,13 +29,13 @@
 
 import SwiftUI
 
-struct Ruler<V: BinaryFloatingPoint>: View, Equatable {
+struct Ruler: View, Equatable {
     @Environment(\.slidingRulerStyle) private var style
     
-    let cells: [RulerCell<V>]
-    let step: Double
-    let markOffset: Double
-    let bounds: ClosedRange<V>
+    let cells: [RulerCell]
+    let step: CGFloat
+    let markOffset: CGFloat
+    let bounds: ClosedRange<CGFloat>
     let formatter: NumberFormatter?
     
     var body: some View {
@@ -48,9 +48,8 @@ struct Ruler<V: BinaryFloatingPoint>: View, Equatable {
         .animation(nil)
     }
     
-    private func configuration(forCell cell: RulerCell<V>) -> SlidingRulerStyleConfiguation {
-        let range = Double(bounds.lowerBound)...Double(bounds.upperBound)
-        return .init(mark: (Double(cell.mark) + markOffset) * step, bounds: range, step: Double(step), formatter: formatter)
+    private func configuration(forCell cell: RulerCell) -> SlidingRulerStyleConfiguation {
+        return .init(mark: (cell.mark + markOffset) * step, bounds: bounds, step: step, formatter: formatter)
     }
     
     static func ==(lhs: Self, rhs: Self) -> Bool {

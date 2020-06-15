@@ -38,23 +38,39 @@ struct HorizontalDragGestureValue {
     let location: CGPoint
 }
 
+protocol HorizontalPanGestureReceiverViewDelegate: class {
+    func viewTouchedWithoutPan(_ view: UIView)
+}
+
+class HorizontalPanGestureReceiverView: UIView {
+    weak var delegate: HorizontalPanGestureReceiverViewDelegate?
+
+    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+        super.touchesEnded(touches, with: event)
+        delegate?.viewTouchedWithoutPan(self)
+    }
+}
+
 extension View {
     func onHorizontalDragGesture(initialTouch: @escaping () -> () = { },
-                                perform action: @escaping (HorizontalDragGestureValue) -> ()) -> some View {
-        self.overlay(HorizontalPanGesture(beginTouch: initialTouch, action: action))
+                                 prematureEnd: @escaping () -> () = { },
+                                 perform action: @escaping (HorizontalDragGestureValue) -> ()) -> some View {
+        self.overlay(HorizontalPanGesture(beginTouch: initialTouch, prematureEnd: prematureEnd, action: action))
     }
 }
 
 private struct HorizontalPanGesture: UIViewRepresentable {
     typealias Action = (HorizontalDragGestureValue) -> ()
     
-    class Coordinator: NSObject, UIGestureRecognizerDelegate {
+    class Coordinator: NSObject, UIGestureRecognizerDelegate, HorizontalPanGestureReceiverViewDelegate {
         private let beginTouch: () -> ()
+        private let prematureEnd: () -> ()
         private let action: Action
         weak var view: UIView?
         
-        init(_ beginTouch: @escaping () -> () = { }, _ action: @escaping Action) {
+        init(_ beginTouch: @escaping () -> () = { }, _ prematureEnd: @escaping () -> () = { }, _ action: @escaping Action) {
             self.beginTouch = beginTouch
+            self.prematureEnd = prematureEnd
             self.action = action
         }
         
@@ -82,18 +98,24 @@ private struct HorizontalPanGesture: UIViewRepresentable {
             beginTouch()
             return true
         }
+
+        func viewTouchedWithoutPan(_ view: UIView) {
+            prematureEnd()
+        }
     }
     
     let beginTouch: () -> ()
+    let prematureEnd: () -> ()
     let action: Action
     
     func makeCoordinator() -> Coordinator {
-        .init(beginTouch, action)
+        .init(beginTouch, prematureEnd, action)
     }
     
     func makeUIView(context: Context) -> UIView {
-        let view = UIView(frame: .init(size: .init(square: 42)))
+        let view = HorizontalPanGestureReceiverView(frame: .init(size: .init(square: 42)))
         let pgr = UIPanGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.panGestureHandler(_:)))
+        view.delegate = context.coordinator
         pgr.delegate = context.coordinator
         view.addGestureRecognizer(pgr)
         context.coordinator.view = view

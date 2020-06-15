@@ -27,11 +27,12 @@
 //
 
 
-import Foundation
+import CoreGraphics
 
-class RulerCell<V: BinaryFloatingPoint>: Identifiable {
-    var id: V { mark }
-    var mark: V
-    
-    init(_ mark: V) { self.mark = mark }
+class RulerCell: Identifiable {
+    var id: CGFloat { mark }
+    var mark: CGFloat
+
+    init(_ mark: Int) { self.mark = .init(mark) }
+    init(_ mark: CGFloat) { self.mark = mark }
 }

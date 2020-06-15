@@ -44,8 +44,8 @@ struct ControlWidthPreferenceKey: PreferenceKey {
 }
 
 struct MarkOffsetPreferenceKey: PreferenceKey {
-    static var defaultValue: Double = .zero
-    static func reduce(value: inout Double, nextValue: () -> Double) {
+    static var defaultValue: CGFloat = .zero
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
         value = nextValue()
     }
 }

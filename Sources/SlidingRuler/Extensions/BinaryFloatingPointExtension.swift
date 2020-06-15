@@ -1,5 +1,5 @@
 //
-//  MarkedCellBody.swift
+//  BinaryFloatingPointExtension.swift
 //
 //  SlidingRuler
 //
@@ -27,21 +27,9 @@
 //
 
 
-import SwiftUI
+import Foundation
 
-public protocol MarkedCellBody: FractionableView {
-    associatedtype Cell: CellBody
-
-    var mark: CGFloat { get }
-    var bounds: ClosedRange<CGFloat> { get }
-    var step: CGFloat { get }
-    var cellWidth: CGFloat { get }
-
-    var numberFormatter: NumberFormatter? { get }
-    var markColor: Color { get }
-    var cell: Cell { get }
-}
-
-extension MarkedCellBody {
-    static var fractions: Int { Cell.fractions }
+extension BinaryFloatingPoint {
+    mutating func approximate() { self = approximated() }
+    func approximated() -> Self { (self * 1_000_000).rounded() / 1_000_000 }
 }

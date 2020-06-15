@@ -33,10 +33,10 @@ public protocol CellBody: FractionableView, Equatable {
     associatedtype Scale: ScaleView
     associatedtype MaskShape: Shape
 
-    var mark: Double { get }
-    var bounds: ClosedRange<Double> { get }
-    var cellBounds: ClosedRange<Double> { get }
-    var step: Double { get }
+    var mark: CGFloat { get }
+    var bounds: ClosedRange<CGFloat> { get }
+    var cellBounds: ClosedRange<CGFloat> { get }
+    var step: CGFloat { get }
     var cellWidth: CGFloat { get }
 
     var scale: Scale { get }
@@ -46,7 +46,7 @@ public protocol CellBody: FractionableView, Equatable {
 extension CellBody {
     static var fractions: Int { Scale.fractions }
 
-    var cellBounds: ClosedRange<Double> {
+    var cellBounds: ClosedRange<CGFloat> {
         ClosedRange(uncheckedBounds: (mark - step / 2, mark + step / 2))
     }
 

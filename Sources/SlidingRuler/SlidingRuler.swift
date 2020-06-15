@@ -32,7 +32,6 @@ import SmoothOperators
 
 @available(iOS 13.0, *)
 public struct SlidingRuler<V>: View where V: BinaryFloatingPoint, V.Stride: BinaryFloatingPoint {
-    typealias S = V.Stride
 
     @Environment(\.slidingRulerCellOverflow) private var cellOverflow
 
@@ -45,11 +44,11 @@ public struct SlidingRuler<V>: View where V: BinaryFloatingPoint, V.Stride: Bina
     @Environment(\.layoutDirection) private var layoutDirection
 
     /// Bound value.
-    @Binding private var value: V
+    @Binding private var controlValue: V
     /// Possible value range.
-    private let bounds: ClosedRange<V>
+    private let bounds: ClosedRange<CGFloat>
     /// Value stride.
-    private let step: S
+    private let step: CGFloat
     /// When to snap.
     private let snap: Mark
     /// When to tick.
@@ -65,7 +64,7 @@ public struct SlidingRuler<V>: View where V: BinaryFloatingPoint, V.Stride: Bina
     @State private var rulerHeight: CGFloat?
 
     /// Cells of the ruler.
-    @State private var cells: [RulerCell<V>] = []
+    @State private var cells: [RulerCell] = []
 
     /// Control state.
     @State private var state: SlidingRulerState = .idle
@@ -74,21 +73,25 @@ public struct SlidingRuler<V>: View where V: BinaryFloatingPoint, V.Stride: Bina
     /// The virtual ruler's drag offset.
     @State private var dragOffset: CGSize = .zero
     /// Offset of the ruler's displayed marks.
-    @State private var markOffset: Double = .zero
+    @State private var markOffset: CGFloat = .zero
 
     /// Non-bound value used for rubber release animation.
-    @State private var animatedValue: V = .zero
+    @State private var animatedValue: CGFloat = .zero
     /// The last value the receiver did set. Used to define if the rendered value was set by the receiver or from another component.
-    @State private var lastValueSet: V = .zero
+    @State private var lastValueSet: CGFloat = .zero
 
     /// VSynch timer that drives inertial animation.
     @State private var inertialTimer: VSynchedTimer? = nil
 
+    private var value: CGFloat {
+        get { CGFloat(controlValue) ?? 0 }
+        nonmutating set { controlValue = V(newValue) }
+    }
+
     /// Allowed drag offset range.
     private var dragBounds: ClosedRange<CGFloat> {
-        let step = CGFloat(self.step)
-        let lower = bounds.upperBound.isInfinite ? -CGFloat.infinity : -CGFloat(bounds.upperBound) * cellWidth / step
-        let upper = bounds.lowerBound.isInfinite ? CGFloat.infinity : -CGFloat(bounds.lowerBound) * cellWidth / step
+        let lower = bounds.upperBound.isInfinite ? -CGFloat.infinity : -bounds.upperBound * cellWidth / step
+        let upper = bounds.lowerBound.isInfinite ? CGFloat.infinity : -bounds.lowerBound * cellWidth / step
         return .init(uncheckedBounds: (lower, upper))
     }
 
@@ -97,7 +100,7 @@ public struct SlidingRuler<V>: View where V: BinaryFloatingPoint, V.Stride: Bina
     /// Amount of units the ruler can translate in both direction before needing to refresh the cells and reset offset.
     private var cellWidthOverflow: CGFloat { cellWidth * CGFloat(cellOverflow) }
     /// Current value clamped to the receiver's value bounds.
-    private var clampedValue: V { value.clamped(to: bounds) }
+    private var clampedValue: CGFloat { value.clamped(to: bounds) }
 
     /// Ruler offset used to render the control depending on the state.
     private var effectiveOffset: CGSize {
@@ -108,17 +111,6 @@ public struct SlidingRuler<V>: View where V: BinaryFloatingPoint, V.Stride: Bina
             return self.offset(fromValue: animatedValue ?? 0)
         default:
             return dragOffset
-        }
-    }
-    /// Receiver's value used to compute things depending on the state.
-    private var effectiveValue: V {
-        switch state {
-        case .idle, .flicking:
-            return clampedValue ?? 0
-        case .animating:
-            return animatedValue ?? 0
-        default:
-            return value ?? 0
         }
     }
 
@@ -138,9 +130,9 @@ public struct SlidingRuler<V>: View where V: BinaryFloatingPoint, V.Stride: Bina
          tick: Mark = .none,
          onEditingChanged: @escaping (Bool) -> () = { _ in },
          formatter: NumberFormatter? = nil) {
-        self._value = value
-        self.bounds = bounds
-        self.step = step
+        self._controlValue = value
+        self.bounds = .init(uncheckedBounds: (CGFloat(bounds.lowerBound), CGFloat(bounds.upperBound)))
+        self.step = CGFloat(step)
         self.snap = snap
         self.tick = tick
         self.editingChangedCallback = onEditingChanged
@@ -148,7 +140,7 @@ public struct SlidingRuler<V>: View where V: BinaryFloatingPoint, V.Stride: Bina
     }
     
     public var body: some View {
-        let renderedValue: V
+        let renderedValue: CGFloat
         let renderedOffset: CGSize
 
         switch self.state {
@@ -178,7 +170,7 @@ public struct SlidingRuler<V>: View where V: BinaryFloatingPoint, V.Stride: Bina
 
         return GeometryReader { proxy in
             ZStack(alignment: .init(horizontal: .center, vertical: self.verticalCursorAlignment)) {
-                Ruler(cells: self.cells, step: Double(self.step), markOffset: self.markOffset, bounds: self.bounds, formatter: self.formatter)
+                Ruler(cells: self.cells, step: self.step, markOffset: self.markOffset, bounds: self.bounds, formatter: self.formatter)
                     .equatable()
                     .animation(nil)
                     .modifier(InfiniteOffsetEffect(offset: renderedOffset, maxOffset: self.cellWidthOverflow))
@@ -189,7 +181,9 @@ public struct SlidingRuler<V>: View where V: BinaryFloatingPoint, V.Stride: Bina
             .propagateWidth(ControlWidthPreferenceKey.self)
             .fixedSize(horizontal: false, vertical: true)
         }
-        .onHorizontalDragGesture(initialTouch: firstTouchHappened, perform: horizontalDragAction(withValue:))
+        .onHorizontalDragGesture(initialTouch: firstTouchHappened,
+                                 prematureEnd: panGestureEndedPrematurely,
+                                 perform: horizontalDragAction(withValue:))
         .modifier(InfiniteMarkOffsetModifier(renderedValue, step: step))
         .onPreferenceChange(MarkOffsetPreferenceKey.self) { self.markOffset = $0 }
         .onPreferenceChange(ControlWidthPreferenceKey.self) {
@@ -208,6 +202,20 @@ public struct SlidingRuler<V>: View where V: BinaryFloatingPoint, V.Stride: Bina
 // MARK: Drag Gesture Management
 extension SlidingRuler {
 
+    /// Callback handling first touch event.
+    private func firstTouchHappened() {
+        if state == .flicking {
+            inertialTimer?.cancel()
+            state = .idle
+        }
+    }
+
+
+    /// Callback handling gesture premature ending.
+    private func panGestureEndedPrematurely() {
+        snapIfNeeded()
+    }
+
     /// Composite callback passed to the horizontal drag gesture recognizer.
     private func horizontalDragAction(withValue value: HorizontalDragGestureValue) {
         switch value.state {
@@ -215,14 +223,6 @@ extension SlidingRuler {
         case .changed: horizontalDragChanged(value)
         case .ended: horizontalDragEnded(value)
         default: return
-        }
-    }
-
-    /// Callback handling first touch event.
-    private func firstTouchHappened() {
-        if state == .flicking {
-            inertialTimer?.cancel()
-            state = .idle
         }
     }
 
@@ -272,18 +272,18 @@ extension SlidingRuler {
 extension SlidingRuler {
 
     /// Compute the value from the given ruler's offset.
-    private func value(fromOffset offset: CGSize) -> V {
-        self.directionalValue(-V(offset.width / cellWidth) * V(step))
+    private func value(fromOffset offset: CGSize) -> CGFloat {
+        self.directionalValue(-CGFloat(offset.width / cellWidth) * step)
     }
 
     /// Compute the ruler's offset from the given value.
-    private func offset(fromValue value: V) -> CGSize {
-        let width = CGFloat(-value * V(cellWidth) / V(step))
+    private func offset(fromValue value: CGFloat) -> CGSize {
+        let width = -value * cellWidth / step
         return self.directionalOffset(.init(horizontal: width))
     }
 
     /// Sets the value.
-    private func setValue(_ newValue: V) {
+    private func setValue(_ newValue: CGFloat) {
         let clampedValue = newValue.clamped(to: bounds)
         
         if clampedValue.isBound(of: bounds) && !value.isBound(of: self.bounds) {
@@ -300,11 +300,11 @@ extension SlidingRuler {
         guard nearest != value else { return }
 
         let delta = abs(nearest - value)
-        let fractionalValue = V(step / S(fractions))
+        let fractionalValue = step / CGFloat(fractions)
 
         guard delta < fractionalValue else { return }
 
-        let animThreshold = V(step / 200)
+        let animThreshold = step / 200
         let animation: Animation? = delta > animThreshold ? .easeOut(duration: 0.1) : nil
 
         dragOffset = offset(fromValue: nearest)
@@ -312,20 +312,23 @@ extension SlidingRuler {
     }
 
     /// Returns the nearest value to snap on based on the `snap` property.
-    private func nearestSnapValue(_ value: V) -> V {
-        let t: V
+    private func nearestSnapValue(_ value: CGFloat) -> CGFloat {
+        guard snap != .none else { return value }
+
+        let t: CGFloat
 
         switch snap {
-        case .unit: t = V(step)
-        case .half: t = V(step / 2)
-        case .fraction: t = V(step / S(fractions))
-        default: return value
+        case .unit: t = step
+        case .half: t = step / 2
+        case .fraction: t = step / CGFloat(fractions)
+        default: fatalError()
         }
 
         let lower = (value / t).rounded(.down) * t
         let upper = (value / t).rounded(.up) * t
-        let deltaDown = abs(value - lower)
-        let deltaUp = abs(value - upper)
+        let deltaDown = abs(value - lower).approximated()
+        let deltaUp = abs(value - upper).approximated()
+
         return deltaDown < deltaUp ? lower : upper
     }
 
@@ -354,7 +357,7 @@ extension SlidingRuler {
     /// Creates `count` cells for the ruler.
     private func populateCells(count: Int) {
         let boundary = count.previousEven() / 2
-        cells = (-boundary...boundary).enumerated().map { RulerCell(V($0.element)) }
+        cells = (-boundary...boundary).map { .init($0) }
     }
 }
 
@@ -457,7 +460,7 @@ extension SlidingRuler {
         
         if offset1 == 0 ||
             (offset0 < 0) != (offset1 < 0) ||
-            Int(offset0 / t) != Int(offset1 / t) {
+            Int((offset0 / t).approximated()) != Int((offset1 / t).approximated()) {
             valueTick()
         }
     }
