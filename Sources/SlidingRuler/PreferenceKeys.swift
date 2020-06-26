@@ -29,13 +29,6 @@
 
 import SwiftUI
 
-struct RulerHeightPreferenceKey: PreferenceKey {
-    static var defaultValue: CGFloat?
-    static func reduce(value: inout CGFloat?, nextValue: () -> CGFloat?) {
-        if let newValue = nextValue() { value = newValue }
-    }
-}
-
 struct ControlWidthPreferenceKey: PreferenceKey {
     static var defaultValue: CGFloat?
     static func reduce(value: inout CGFloat?, nextValue: () -> CGFloat?) {

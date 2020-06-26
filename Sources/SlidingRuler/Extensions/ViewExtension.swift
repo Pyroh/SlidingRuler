@@ -44,29 +44,30 @@ extension View {
         self.frame(width: size?.width, height: size?.height, alignment: alignment)
     }
 
+    func onPreferenceChange<K: PreferenceKey>(_ key: K.Type,
+                                              storeValueIn storage: Binding<K.Value>,
+                                              action: (() -> ())? = nil ) -> some View where K.Value: Equatable {
+        onPreferenceChange(key, perform: {
+            storage.wrappedValue = $0
+            action?()
+        })
+    }
+
     func propagateHeight<K: PreferenceKey>(_ key: K.Type, transform: @escaping (K.Value) -> K.Value = { $0 }) -> some View where K.Value == CGFloat? {
         overlay(
             GeometryReader { proxy in
                 Color.clear
-                    .preference(key: key, value: transform(proxy.frame(in: .local).height))
+                    .preference(key: key, value: transform(proxy.size.height))
             }
         )
-    }
-
-    func onHeightPreferenceChange<K: PreferenceKey>(_ key: K.Type = K.self, storeValueIn storage: Binding<CGFloat?>) -> some View where K.Value == CGFloat? {
-        onPreferenceChange(key, perform: { storage.wrappedValue = $0 })
     }
 
     func propagateWidth<K: PreferenceKey>(_ key: K.Type, transform: @escaping (K.Value) -> K.Value = { $0 }) -> some View where K.Value == CGFloat? {
         overlay(
             GeometryReader { proxy in
                 Color.clear
-                    .preference(key: key, value: transform(proxy.frame(in: .local).width))
+                    .preference(key: key, value: transform(proxy.size.width))
             }
         )
-    }
-
-    func onWidthPreferenceChange<K: PreferenceKey>(_ key: K.Type = K.self, storeValueIn storage: Binding<CGFloat?>) -> some View where K.Value == CGFloat? {
-        onPreferenceChange(key, perform: { storage.wrappedValue = $0 })
     }
 }

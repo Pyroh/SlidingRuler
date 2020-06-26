@@ -1,5 +1,5 @@
 //
-//  Ruler.swift
+//  SwiftUIView.swift
 //
 //  SlidingRuler
 //
@@ -29,38 +29,27 @@
 
 import SwiftUI
 
-struct Ruler: View, Equatable {
-    @Environment(\.slidingRulerStyle) private var style
-    
-    let cells: [RulerCell]
-    let step: CGFloat
-    let markOffset: CGFloat
-    let bounds: ClosedRange<CGFloat>
-    let formatter: NumberFormatter?
-    
-    var body: some View {
-        HStack(spacing: 0) {
-            ForEach(self.cells) { cell in
-                self.style.makeCellBody(configuration: self.configuration(forCell: cell))
-            }
+private struct _FlexibleWidthContainerHeightPreferenceKey: PreferenceKey {
+    static func reduce(value: inout CGFloat?, nextValue: () -> CGFloat?) {
+        if let newValue = nextValue() {
+            value = newValue
         }
-        .animation(nil)
-    }
-    
-    private func configuration(forCell cell: RulerCell) -> SlidingRulerStyleConfiguation {
-        return .init(mark: (cell.mark + markOffset) * step, bounds: bounds, step: step, formatter: formatter)
-    }
-    
-    static func ==(lhs: Self, rhs: Self) -> Bool {
-        lhs.step == rhs.step &&
-        lhs.cells.count == rhs.cells.count &&
-        (!StaticSlidingRulerStyleEnvironment.hasMarks || lhs.markOffset == rhs.markOffset)
     }
 }
 
-struct Ruler_Previews: PreviewProvider {
-    static var previews: some View {
-        Ruler(cells: [.init(CGFloat(0))],
-              step: 1.0, markOffset: 0, bounds: -1...1, formatter: nil)
+struct FlexibleWidthContainer<Content: View>: View {
+    @State private var height: CGFloat?
+    private let content: Content
+
+    init(@ViewBuilder content: @escaping () -> Content) {
+        self.content = content()
+    }
+
+    var body: some View {
+        Color.clear
+            .frame(height: height)
+            .overlay(content.propagateHeight(_FlexibleWidthContainerHeightPreferenceKey.self))
+            .onPreferenceChange(_FlexibleWidthContainerHeightPreferenceKey.self, storeValueIn: $height)
+            .clipped()
     }
 }

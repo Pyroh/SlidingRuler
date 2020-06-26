@@ -64,7 +64,7 @@ public struct SlidingRuler<V>: View where V: BinaryFloatingPoint, V.Stride: Bina
     @State private var rulerHeight: CGFloat?
 
     /// Cells of the ruler.
-    @State private var cells: [RulerCell] = []
+    @State private var cells: [RulerCell] = [.init(CGFloat(0))]
 
     /// Control state.
     @State private var state: SlidingRulerState = .idle
@@ -146,7 +146,7 @@ public struct SlidingRuler<V>: View where V: BinaryFloatingPoint, V.Stride: Bina
 
         (renderedValue, renderedOffset) = renderingValues()
 
-        return GeometryReader { proxy in
+        return FlexibleWidthContainer {
             ZStack(alignment: .init(horizontal: .center, vertical: self.verticalCursorAlignment)) {
                 Ruler(cells: self.cells, step: self.step, markOffset: self.markOffset, bounds: self.bounds, formatter: self.formatter)
                     .equatable()
@@ -154,26 +154,19 @@ public struct SlidingRuler<V>: View where V: BinaryFloatingPoint, V.Stride: Bina
                     .modifier(InfiniteOffsetEffect(offset: renderedOffset, maxOffset: self.cellWidthOverflow))
                 self.style.makeCursorBody()
             }
-            .frame(width: proxy.size.width)
-            .clipped()
-            .propagateWidth(ControlWidthPreferenceKey.self)
-            .fixedSize(horizontal: false, vertical: true)
+        }
+        .modifier(InfiniteMarkOffsetModifier(renderedValue, step: step))
+        .propagateWidth(ControlWidthPreferenceKey.self)
+        .onPreferenceChange(MarkOffsetPreferenceKey.self, storeValueIn: $markOffset)
+        .onPreferenceChange(ControlWidthPreferenceKey.self, storeValueIn: $controlWidth) {
+            self.updateCellsIfNeeded()
+        }
+        .transaction {
+            if $0.animation != nil { $0.animation = .easeIn(duration: 0.1) }
         }
         .onHorizontalDragGesture(initialTouch: firstTouchHappened,
                                  prematureEnd: panGestureEndedPrematurely,
                                  perform: horizontalDragAction(withValue:))
-        .modifier(InfiniteMarkOffsetModifier(renderedValue, step: step))
-        .onPreferenceChange(MarkOffsetPreferenceKey.self) { self.markOffset = $0 }
-        .onPreferenceChange(ControlWidthPreferenceKey.self) {
-            self.controlWidth = $0
-            self.updateCellsIfNeeded()
-        }
-        .onHeightPreferenceChange(RulerHeightPreferenceKey.self, storeValueIn: $rulerHeight)
-        .transaction {
-            if $0.animation != nil { $0.animation = .easeIn(duration: 0.1) }
-        }
-        .frame(height: rulerHeight)
-        .fixedSize(horizontal: false, vertical: true)
     }
 
     private func renderingValues() -> (CGFloat, CGSize) {
@@ -276,7 +269,7 @@ extension SlidingRuler {
         if isRubberBandNeedingRelease {
             self.releaseRubberBand()
             self.endDragSession()
-        } else if abs(value.velocity) > 40 {
+        } else if abs(value.velocity) > 90 {
             self.applyInertia(initialVelocity: value.velocity)
         } else {
             state = .idle
@@ -548,3 +541,4 @@ extension SlidingRuler {
         fg.impactOccurred(intensity: 0.5)
     }
 }
+
