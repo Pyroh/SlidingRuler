@@ -80,8 +80,8 @@ public struct SlidingRuler<V>: View where V: BinaryFloatingPoint, V.Stride: Bina
     /// The last value the receiver did set. Used to define if the rendered value was set by the receiver or from another component.
     @State private var lastValueSet: CGFloat = .zero
 
-    /// VSynch timer that drives inertial animation.
-    @State private var inertialTimer: VSynchedTimer? = nil
+    /// VSynch timer that drives animations.
+    @State private var animationTimer: VSynchedTimer? = nil
 
     private var value: CGFloat {
         get { CGFloat(controlValue) ?? 0 }
@@ -138,35 +138,13 @@ public struct SlidingRuler<V>: View where V: BinaryFloatingPoint, V.Stride: Bina
         self.editingChangedCallback = onEditingChanged
         self.formatter = formatter
     }
+
+    // MARK: Rendering
     
     public var body: some View {
-        let renderedValue: CGFloat
-        let renderedOffset: CGSize
+        let renderedValue: CGFloat, renderedOffset: CGSize
 
-        switch self.state {
-        case .flicking:
-            if self.value != self.lastValueSet {
-                self.inertialTimer?.cancel()
-                NextLoop { self.state = .idle }
-                renderedValue = clampedValue ?? 0
-                renderedOffset = self.offset(fromValue: renderedValue)
-            } else {
-                fallthrough
-            }
-        case .dragging:
-            renderedOffset = dragOffset
-            renderedValue = self.value(fromOffset: renderedOffset)
-        case .animating:
-            if value == animatedValue {
-                NextLoop { self.state = .idle }
-            }
-            print(value, animatedValue, $animatedValue.transaction)
-            renderedValue = animatedValue
-            renderedOffset = self.offset(fromValue: renderedValue)
-        case .idle:
-            renderedValue = clampedValue ?? 0
-            renderedOffset = self.offset(fromValue: renderedValue)
-        }
+        (renderedValue, renderedOffset) = renderingValues()
 
         return GeometryReader { proxy in
             ZStack(alignment: .init(horizontal: .center, vertical: self.verticalCursorAlignment)) {
@@ -192,10 +170,42 @@ public struct SlidingRuler<V>: View where V: BinaryFloatingPoint, V.Stride: Bina
         }
         .onHeightPreferenceChange(RulerHeightPreferenceKey.self, storeValueIn: $rulerHeight)
         .transaction {
-            if $0.animation != nil && self.state == .idle { $0.animation = .easeIn(duration: 0.1) }
+            if $0.animation != nil { $0.animation = .easeIn(duration: 0.1) }
         }
         .frame(height: rulerHeight)
         .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private func renderingValues() -> (CGFloat, CGSize) {
+        let value: CGFloat
+        let offset: CGSize
+
+        switch self.state {
+        case .flicking, .springing:
+            if self.value != self.lastValueSet {
+                self.animationTimer?.cancel()
+                NextLoop { self.state = .idle }
+                value = clampedValue ?? 0
+                offset = self.offset(fromValue: value)
+            } else {
+                fallthrough
+            }
+        case .dragging, .stoppedFlick, .stoppedSpring:
+            offset = dragOffset
+            value = self.value(fromOffset: offset)
+        case .animating:
+            if self.value != lastValueSet {
+                NextLoop { self.state = .idle }
+                fallthrough
+            }
+            value = animatedValue
+            offset = self.offset(fromValue: value)
+        case .idle:
+            value = clampedValue ?? 0
+            offset = self.offset(fromValue: value)
+        }
+
+        return (value, offset)
     }
 }
 
@@ -204,16 +214,27 @@ extension SlidingRuler {
 
     /// Callback handling first touch event.
     private func firstTouchHappened() {
-        if state == .flicking {
-            inertialTimer?.cancel()
-            state = .idle
+        switch state {
+        case .flicking:
+            cancelCurrentTimer()
+            state = .stoppedFlick
+        case .springing:
+            cancelCurrentTimer()
+            state = .stoppedSpring
+        default: break
         }
     }
 
-
     /// Callback handling gesture premature ending.
     private func panGestureEndedPrematurely() {
-        snapIfNeeded()
+        switch state {
+        case .stoppedFlick:
+            snapIfNeeded()
+        case .stoppedSpring:
+            releaseRubberBand()
+        default:
+            break
+        }
     }
 
     /// Composite callback passed to the horizontal drag gesture recognizer.
@@ -229,7 +250,9 @@ extension SlidingRuler {
     /// Callback handling horizontal drag gesture begining.
     private func horizontalDragBegan(_ value: HorizontalDragGestureValue) {
         editingChangedCallback(true)
-        dragOffset = self.offset(fromValue: clampedValue ?? 0)
+        if state != .stoppedSpring {
+            dragOffset = self.offset(fromValue: clampedValue ?? 0)
+        }
         referenceOffset = dragOffset
         state = .dragging
     }
@@ -239,7 +262,7 @@ extension SlidingRuler {
         let newOffset = self.directionalOffset(value.translation.horizontal + referenceOffset)
         let newValue = self.value(fromOffset: newOffset)
         
-        self.tickIfNeeded(dragOffset.width, newOffset.width)
+        self.tickIfNeeded(dragOffset, newOffset)
         
         withoutAnimation {
             self.setValue(newValue)
@@ -253,7 +276,7 @@ extension SlidingRuler {
             self.releaseRubberBand()
             self.endDragSession()
         } else if abs(value.velocity) > 40 {
-            self.applyInertia(startLoc: value.startLocation, releaseLoc: value.location, initialVelocity: value.velocity)
+            self.applyInertia(initialVelocity: value.velocity)
         } else {
             state = .idle
             self.endDragSession()
@@ -361,51 +384,83 @@ extension SlidingRuler {
     }
 }
 
-// MARK: Physic Simulation
+extension UIScrollView.DecelerationRate {
+    static var ruler: Self { Self.init(rawValue: 0.9972) }
+}
+
+// MARK: Mechanic Simulation
 extension SlidingRuler {
 
-    /// Apply inertia to the ruler once dragged and released with a sufficient velocity.
-    /// - Parameters:
-    ///   - startLoc: The drag event start location in the view.
-    ///   - releaseLoc: The drag event release location in the view.
-    ///   - initialVelocity: Drag velocity when the drag event ended.
-    private func applyInertia(startLoc: CGPoint, releaseLoc: CGPoint, initialVelocity: CGFloat) {
-        let friction = 2345.6
-        let bounceFriction = 45678.9
-        var location = releaseLoc.x
-        var speed = abs(initialVelocity)
-        let direction = speed / initialVelocity
-        state = .flicking
-        
-        inertialTimer = .init(animations: { (timeFrame) in
-            location += direction * speed * CGFloat(timeFrame)
-            let translation = CGSize(horizontal: location - startLoc.x)
-            let newOffset = self.directionalOffset(translation + self.referenceOffset)
+    private func applyInertia(initialVelocity: CGFloat) {
+        func shiftOffset(by distance: CGSize) {
+            let newOffset = directionalOffset(self.referenceOffset + distance)
             let newValue = self.value(fromOffset: newOffset)
-            
-            self.tickIfNeeded(self.dragOffset.width, newOffset.width)
-            
+
+            self.tickIfNeeded(self.dragOffset, newOffset)
+
             withoutAnimation {
                 self.setValue(newValue)
-                self.dragOffset = self.applyRubber(to: newOffset)
+                self.dragOffset = newOffset
             }
-            
-            if !self.isRubberBandNeedingRelease {
-                speed = speed - CGFloat(friction * timeFrame)
-            } else {
-                speed = speed - CGFloat(bounceFriction * timeFrame)
-            }
-            
-            if speed <= 0 { self.inertialTimer?.stop() }
+        }
+
+        referenceOffset = dragOffset
+
+        let rate = UIScrollView.DecelerationRate.ruler
+        let totalDistance = Mechanic.Inertia.totalDistance(forVelocity: initialVelocity, decelerationRate: rate)
+        let finalOffset = self.referenceOffset + .init(horizontal: totalDistance)
+
+        state = .flicking
+
+        if dragBounds.contains(finalOffset.width) {
+            let duration = Mechanic.Inertia.duration(forVelocity: initialVelocity, decelerationRate: rate)
+
+            animationTimer = .init(duration: duration, animations: { (progress, interval) in
+                let distance =  CGSize(horizontal: Mechanic.Inertia.distance(atTime: progress, v0: initialVelocity, decelerationRate: rate))
+                shiftOffset(by: distance)
+            }, completion: { (completed) in
+                if completed {
+                    self.state = .idle
+                    shiftOffset(by: .init(horizontal: totalDistance))
+                    self.snapIfNeeded()
+                    self.endDragSession()
+                } else {
+                    NextLoop { self.endDragSession() }
+                }
+            })
+        } else {
+            let allowedDistance = finalOffset.width.clamped(to: dragBounds) - self.referenceOffset.width
+            let duration = Mechanic.Inertia.time(toReachDistance: allowedDistance, forVelocity: initialVelocity, decelerationRate: rate)
+            animationTimer = .init(duration: duration, animations: { (progress, interval) in
+                let distance =  CGSize(horizontal: Mechanic.Inertia.distance(atTime: progress, v0: initialVelocity, decelerationRate: rate))
+                shiftOffset(by: distance)
+            }, completion: { (completed) in
+                if completed {
+                    shiftOffset(by: .init(horizontal: allowedDistance))
+                    let remainingVelocity = Mechanic.Inertia.velocity(atTime: duration, v0: initialVelocity, decelerationRate: rate)
+                    self.applyInertialRubber(remainingVelocity: remainingVelocity)
+                    self.endDragSession()
+                } else {
+                    NextLoop { self.endDragSession() }
+                }
+            })
+        }
+    }
+
+    private func applyInertialRubber(remainingVelocity: CGFloat) {
+        let duration = Mechanic.Spring.duration(forVelocity: abs(remainingVelocity), displacement: 0)
+        let targetOffset = dragOffset.width.nearestBound(of: dragBounds)
+
+        state = .springing
+
+        animationTimer = .init(duration: duration, animations: { (progress, interval) in
+            let delta = Mechanic.Spring.value(atTime: progress, v0: remainingVelocity, displacement: 0)
+            self.dragOffset = .init(horizontal: targetOffset + delta)
         }, completion: { (completed) in
-            if self.isRubberBandNeedingRelease {
-                self.releaseRubberBand()
-            } else if completed {
+            if completed {
+                self.dragOffset = .init(horizontal: targetOffset)
                 self.state = .idle
-                self.snapIfNeeded()
             }
-            
-            self.endDragSession()
         })
     }
 
@@ -415,28 +470,48 @@ extension SlidingRuler {
         guard !dragBounds.contains(offset.width) else { return offset }
         
         let tx = offset.width
-        let nearest = tx.clamped(to: dragBounds)
-        let delta = tx - nearest
-        let factor: CGFloat = delta < 0 ? -1 : 1
-        let c = cellWidth * 2.5
-        let rubberDelta = c * (1 + log10((abs(delta) + c)/c)) - c
-        let rubberTx = nearest + factor * rubberDelta
+        let limit = tx.clamped(to: dragBounds)
+        let delta = abs(tx - limit)
+        let factor: CGFloat = tx - limit < 0 ? -1 : 1
+        let d = controlWidth ?? 0
+        let c = CGFloat(0.55)
+        let rubberDelta = (1 - (1 / ((c * delta / d) + 1))) * d * factor
+        let rubberTx = limit + rubberDelta
         
         return .init(horizontal: rubberTx)
     }
 
     /// Animates an off-range offset back in place
     private func releaseRubberBand() {
-        self.animatedValue = self.value(fromOffset: effectiveOffset)
-        self.state = .animating
-        self.dragOffset = self.offset(fromValue: self.value)
-        NextLoop {
-            withAnimation(.spring(response: 0.667, dampingFraction: 1.0)) {
-                self.animatedValue = self.value
+        let targetOffset = dragOffset.width.clamped(to: dragBounds)
+        let delta = dragOffset.width - targetOffset
+        let duration = Mechanic.Spring.duration(forVelocity: 0, displacement: abs(delta))
+
+        state = .springing
+
+        animationTimer = .init(duration: duration, animations: { (progress, interval) in
+            let newDelta = Mechanic.Spring.value(atTime: progress, v0: 0, displacement: delta)
+            self.dragOffset = .init(horizontal: targetOffset + newDelta)
+        }, completion: { (completed) in
+            if completed {
+                self.dragOffset = .init(horizontal: targetOffset)
+                self.state = .idle
             }
-        }
+        })
+    }
+
+    /// Stops the current animation and cleans the timer.
+    private func cancelCurrentTimer() {
+        animationTimer?.cancel()
+        animationTimer = nil
+    }
+
+    private func cleanTimer() {
+        animationTimer = nil
     }
 }
+
+
 
 // MARK: Tick Management
 extension SlidingRuler {
@@ -445,10 +520,12 @@ extension SlidingRuler {
         fg.impactOccurred(intensity: 0.667)
     }
 
-    private func tickIfNeeded(_ offset0: CGFloat, _ offset1: CGFloat) {
+    private func tickIfNeeded(_ offset0: CGSize, _ offset1: CGSize) {
+        let width0 = offset0.width, width1 = offset1.width
+
         let dragBounds = self.dragBounds
-        guard dragBounds.contains(offset0), dragBounds.contains(offset1),
-            !offset0.isBound(of: dragBounds), !offset1.isBound(of: dragBounds) else { return }
+        guard dragBounds.contains(width0), dragBounds.contains(width1),
+            !width0.isBound(of: dragBounds), !width1.isBound(of: dragBounds) else { return }
         
         let t: CGFloat
         switch tick {
@@ -458,9 +535,9 @@ extension SlidingRuler {
         case .none: return
         }
         
-        if offset1 == 0 ||
-            (offset0 < 0) != (offset1 < 0) ||
-            Int((offset0 / t).approximated()) != Int((offset1 / t).approximated()) {
+        if width1 == 0 ||
+            (width0 < 0) != (width1 < 0) ||
+            Int((width0 / t).approximated()) != Int((width1 / t).approximated()) {
             valueTick()
         }
     }

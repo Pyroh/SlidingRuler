@@ -26,64 +26,76 @@
 //  SOFTWARE.
 //
 
-
 import UIKit
 
 struct VSynchedTimer {
+    typealias Animations = (TimeInterval, TimeInterval) -> ()
+    typealias Completion = (Bool) -> ()
+
     private let timer: SynchedTimer
     
-    init(animations: @escaping (TimeInterval) -> (), completion: ((Bool) -> ())? = nil) {
-        self.timer = .init(animations: animations, completion: completion)
+    init(duration: TimeInterval, animations: @escaping Animations, completion: Completion? = nil) {
+        self.timer = .init(duration, animations, completion)
     }
-    
-    func stop() { timer.stop() }
+
     func cancel() { timer.cancel() }
 }
 
 
 private final class SynchedTimer {
-    private let animationBlock: (TimeInterval) -> ()
-    private let completionBlock: ((Bool) -> ())?
+    private let duration: TimeInterval
+    private let animationBlock: VSynchedTimer.Animations
+    private let completionBlock: VSynchedTimer.Completion?
     private weak var displayLink: CADisplayLink?
     
     private var isRunning: Bool
+    private let startTimeStamp: TimeInterval
     private var lastTimeStamp: TimeInterval
     
     deinit {
         self.displayLink?.invalidate()
     }
     
-    init(animations: @escaping (TimeInterval) -> (), completion: ((Bool) -> ())? = nil) {
+    init(_ duration: TimeInterval, _ animations: @escaping VSynchedTimer.Animations, _ completion: VSynchedTimer.Completion? = nil) {
+        self.duration = duration
         self.animationBlock = animations
         self.completionBlock = completion
         
         self.isRunning = true
-        self.lastTimeStamp = CACurrentMediaTime()
+        self.startTimeStamp = CACurrentMediaTime()
+        self.lastTimeStamp = startTimeStamp
         self.displayLink = self.createDisplayLink()
     }
     
     func cancel() {
-        if isRunning {
-            isRunning.toggle()
-            displayLink?.invalidate()
-            NextLoop { self.completionBlock?(false) }
-        }
+        guard isRunning else { return }
+
+        isRunning.toggle()
+        displayLink?.invalidate()
+        self.completionBlock?(false)
     }
-    
-    func stop() {
-        if isRunning {
-            isRunning.toggle()
-            displayLink?.invalidate()
-            completionBlock?(true)
-        }
+
+    private func complete() {
+        guard isRunning else { return }
+
+        isRunning.toggle()
+        displayLink?.invalidate()
+        self.completionBlock?(true)
     }
     
     @objc private func displayLinkTick(_ displayLink: CADisplayLink) {
         guard isRunning else { return }
+
         let currentTimeStamp = CACurrentMediaTime()
+        let progress = currentTimeStamp - startTimeStamp
         let elapsed = currentTimeStamp - lastTimeStamp
         lastTimeStamp = currentTimeStamp
-        animationBlock(elapsed)
+
+        if progress < duration {
+            animationBlock(progress, elapsed)
+        } else {
+            complete()
+        }
     }
     
     private func createDisplayLink() -> CADisplayLink {
