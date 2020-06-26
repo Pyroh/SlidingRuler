@@ -1,5 +1,5 @@
 <div align="center">
-    <img src="https://raw.githubusercontent.com/Pyroh/SlidingRuler/main/Resources/Banner.png" width="619pt">
+    <img src="https://raw.githubusercontent.com/Pyroh/SlidingRuler/main/Resources/Logo.png" width="400pt">
 </div>
 
 ---
@@ -27,7 +27,6 @@ By default it shows a ruler you can slide around and a beautiful red cursor poin
 <br>
 <div align="center">
     <img src="https://raw.githubusercontent.com/Pyroh/SlidingRuler/main/Resources/Idle.png" width="356pt">
-    <figcaption style="font-size: small"><i>Yes, it does look like the product logo.</i></figcaption>
 </div>
 <br>
 These features are the supported features :
