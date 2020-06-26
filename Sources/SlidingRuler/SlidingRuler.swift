@@ -229,6 +229,7 @@ extension SlidingRuler {
     private func panGestureEndedPrematurely() {
         switch state {
         case .stoppedFlick:
+            state = .idle
             snapIfNeeded()
         case .stoppedSpring:
             releaseRubberBand()
