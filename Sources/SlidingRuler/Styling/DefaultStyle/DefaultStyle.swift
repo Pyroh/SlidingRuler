@@ -29,7 +29,7 @@
 
 import SwiftUI
 
-public struct DefaultSlidingRulerStyle: SlidingRulerStyle {
+public struct PrimarySlidingRulerStyle: SlidingRulerStyle {
     public let cursorAlignment: VerticalAlignment = .top
 
     public func makeCellBody(configuration: SlidingRulerStyleConfiguation) -> some FractionableView {
