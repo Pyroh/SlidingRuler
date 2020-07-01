@@ -8,7 +8,7 @@
     <img src=https://img.shields.io/badge/Swift-5.2-orange.svg>
     <img src=https://img.shields.io/badge/Platform-iOS_13.1-green.svg>
     <!-- <img src=https://img.shields.io/badge/Version-0.1.0-blue.svg> -->
-    <img src=https://img.shields.io/badge/BETA-0.1.0-red.svg>
+    <img src=https://img.shields.io/badge/BETA-0.1.1-red.svg>
 </div>
 <div align="center">
     <a href="https://pyrolyse.co">
