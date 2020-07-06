@@ -93,8 +93,8 @@ private struct HorizontalPanGesture: UIViewRepresentable {
             let velocity = pgr.velocity(in: view)
             return abs(velocity.x) > abs(velocity.y)
         }
-        
-        func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
+
+        func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive event: UIEvent) -> Bool {
             beginTouch()
             return true
         }
@@ -103,6 +103,8 @@ private struct HorizontalPanGesture: UIViewRepresentable {
             prematureEnd()
         }
     }
+
+    @Environment(\.slidingRulerStyle) private var style
     
     let beginTouch: () -> ()
     let prematureEnd: () -> ()
@@ -119,10 +121,22 @@ private struct HorizontalPanGesture: UIViewRepresentable {
         pgr.delegate = context.coordinator
         view.addGestureRecognizer(pgr)
         context.coordinator.view = view
-        
+
+        // Pointer interactions
+        if #available(iOS 13.4, *), style.supportsPointerInteraction {
+            pgr.allowedScrollTypesMask = .continuous
+            view.addInteraction(UIPointerInteraction(delegate: context.coordinator))
+        }
+
         return view
     }
     
     func updateUIView(_ uiView: UIView, context: Context) { }
 }
 
+@available(iOS 13.4, *)
+extension HorizontalPanGesture.Coordinator: UIPointerInteractionDelegate {
+    func pointerInteraction(_ interaction: UIPointerInteraction, styleFor region: UIPointerRegion) -> UIPointerStyle? {
+        .init(shape: .path(Pointers.standard), constrainedAxes: .vertical)
+    }
+}
