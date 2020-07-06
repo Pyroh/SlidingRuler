@@ -1,5 +1,5 @@
 //
-//  NativeMarkedCellBody.swift
+//  MarkedCellBody.swift
 //
 //  SlidingRuler
 //
@@ -29,22 +29,19 @@
 
 import SwiftUI
 
-protocol NativeMarkedCellBody: MarkedCellBody { }
-extension NativeMarkedCellBody {
-    var markColor: Color {
-        bounds.contains(mark) ? .init(.label) : .init(.tertiaryLabel)
-    }
-    var displayMark: String { numberFormatter?.string(for: mark) ?? "\(mark.approximated())" }
+public protocol MarkedRulerCellView: FractionableView {
+    associatedtype CellView: RulerCellView
 
-    var body: some View {
-        VStack {
-            cell.equatable()
-            Spacer()
-            Text(verbatim: displayMark)
-                .font(Font.footnote.monospacedDigit())
-                .foregroundColor(markColor)
-                .lineLimit(1)
-        }
-        .fixedSize()
-    }
+    var mark: CGFloat { get }
+    var bounds: ClosedRange<CGFloat> { get }
+    var step: CGFloat { get }
+    var cellWidth: CGFloat { get }
+
+    var numberFormatter: NumberFormatter? { get }
+    var markColor: Color { get }
+    var cell: CellView { get }
+}
+
+extension MarkedRulerCellView {
+    static var fractions: Int { CellView.fractions }
 }

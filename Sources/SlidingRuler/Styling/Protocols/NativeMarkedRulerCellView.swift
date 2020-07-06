@@ -1,6 +1,6 @@
 //
-//  CellBody.swift
-//  
+//  NativeMarkedCellBody.swift
+//
 //  SlidingRuler
 //
 //  MIT License
@@ -29,43 +29,22 @@
 
 import SwiftUI
 
-public protocol CellBody: FractionableView, Equatable {
-    associatedtype Scale: ScaleView
-    associatedtype MaskShape: Shape
-
-    var mark: CGFloat { get }
-    var bounds: ClosedRange<CGFloat> { get }
-    var cellBounds: ClosedRange<CGFloat> { get }
-    var step: CGFloat { get }
-    var cellWidth: CGFloat { get }
-
-    var scale: Scale { get }
-    var maskShape: MaskShape { get }
-}
-
-extension CellBody {
-    static var fractions: Int { Scale.fractions }
-
-    var cellBounds: ClosedRange<CGFloat> {
-        ClosedRange(uncheckedBounds: (mark - step / 2, mark + step / 2))
+protocol NativeMarkedRulerCellView: MarkedRulerCellView { }
+extension NativeMarkedRulerCellView {
+    var markColor: Color {
+        bounds.contains(mark) ? .init(.label) : .init(.tertiaryLabel)
     }
-
-    var isComplete: Bool { bounds.contains(cellBounds) }
+    var displayMark: String { numberFormatter?.string(for: mark) ?? "\(mark.approximated())" }
 
     var body: some View {
-        ZStack {
-            scale
-                .equatable()
-                .foregroundColor(.init(.label))
-                .clipShape(maskShape)
-            scale
-                .equatable()
-                .foregroundColor(.init(.tertiaryLabel))
+        VStack {
+            cell.equatable()
+            Spacer()
+            Text(verbatim: displayMark)
+                .font(Font.footnote.monospacedDigit())
+                .foregroundColor(markColor)
+                .lineLimit(1)
         }
-        .frame(width: cellWidth)
-    }
-
-    static func ==(_ lhs: Self, _ rhs: Self) -> Bool {
-        lhs.isComplete && rhs.isComplete
+        .fixedSize()
     }
 }

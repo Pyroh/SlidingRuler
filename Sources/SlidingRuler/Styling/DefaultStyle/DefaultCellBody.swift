@@ -29,7 +29,7 @@
 
 import SwiftUI
 
-struct BlankCellBody: NativeCellBody {
+struct BlankCellBody: NativeRulerCellView {
     var mark: CGFloat
     var bounds: ClosedRange<CGFloat>
     var step: CGFloat
@@ -38,13 +38,13 @@ struct BlankCellBody: NativeCellBody {
     var scale: some ScaleView { DefaultScaleView(width: cellWidth) }
 }
 
-struct DefaultCellBody: NativeMarkedCellBody {
+struct DefaultCellBody: NativeMarkedRulerCellView {
     var mark: CGFloat
     var bounds: ClosedRange<CGFloat>
     var step: CGFloat
     var cellWidth: CGFloat
     var numberFormatter: NumberFormatter?
 
-    var cell: some CellBody { BlankCellBody(mark: mark, bounds: bounds, step: step, cellWidth: cellWidth) }
+    var cell: some RulerCellView { BlankCellBody(mark: mark, bounds: bounds, step: step, cellWidth: cellWidth) }
 }
 
