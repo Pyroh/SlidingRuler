@@ -8,7 +8,7 @@
     <img src=https://img.shields.io/badge/Swift-5.2-orange.svg>
     <img src=https://img.shields.io/badge/Platform-iOS_13.1-green.svg>
     <!-- <img src=https://img.shields.io/badge/Version-0.1.0-blue.svg> -->
-    <img src=https://img.shields.io/badge/BETA-0.1.1-red.svg>
+    <img src=https://img.shields.io/badge/BETA-0.2.0-red.svg>
 </div>
 <div align="center">
     <a href="https://pyrolyse.co">
@@ -37,8 +37,8 @@ These features are the supported features :
 - [x] Scroll inertia & rubber banding
 - [x] Custom styling
 - [x] Animations
+- [x] Pointer interactions
 - [ ] Layout direction
-- [ ] Pointer interactions
 - [ ] Accessibility
 
 It's been made to feel native and to integrate nicely in iOS and iPadOS.
