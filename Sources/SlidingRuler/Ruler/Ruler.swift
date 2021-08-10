@@ -26,7 +26,6 @@
 //  SOFTWARE.
 //
 
-
 import SwiftUI
 
 struct Ruler: View, Equatable {

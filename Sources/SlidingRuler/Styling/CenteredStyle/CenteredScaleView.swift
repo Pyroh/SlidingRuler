@@ -31,9 +31,9 @@ import SwiftUI
 
 struct CenteredScaleView: ScaleView {
     struct ScaleShape: Shape {
-        fileprivate var unitMarkSize: CGSize { .init(width: 3.0, height: 27.0)}
-        fileprivate var halfMarkSize: CGSize { .init(width: UIScreen.main.scale == 3 ? 1.8 : 2.0, height: 19.0) }
-        fileprivate var fractionMarkSize: CGSize { .init(width: 1.0, height: 11.0)}
+        fileprivate var unitMarkSize: CGSize { .init(width: 2.0, height: 16.0)}
+        fileprivate var halfMarkSize: CGSize { .init(width: 2.0, height: 16.0) }
+        fileprivate var fractionMarkSize: CGSize { .init(width: 1.0, height: 12.0)}
 
         func path(in rect: CGRect) -> Path {
             let centerX = rect.center.x

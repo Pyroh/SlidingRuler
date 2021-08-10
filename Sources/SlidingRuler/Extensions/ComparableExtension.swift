@@ -26,10 +26,7 @@
 //  SOFTWARE.
 //
 
-
 import Foundation
-
-
 
 extension Comparable {
     static func clamp(_ x: Self, _ min: Self, _ max: Self) -> Self {
@@ -56,4 +53,3 @@ extension Comparable {
         range.lowerBound == self || range.upperBound == self
     }
 }
-

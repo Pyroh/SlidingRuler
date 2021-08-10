@@ -26,7 +26,6 @@
 //  SOFTWARE.
 //
 
-
 import Foundation
 
 extension BinaryFloatingPoint {

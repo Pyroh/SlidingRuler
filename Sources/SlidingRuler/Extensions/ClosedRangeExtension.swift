@@ -26,7 +26,6 @@
 //  SOFTWARE.
 //
 
-
 extension ClosedRange {
     func contains(_ range: Self) -> Bool {
         self.contains(range.lowerBound) && self.contains(range.upperBound)

@@ -26,7 +26,6 @@
 //  SOFTWARE.
 //
 
-
 import SwiftUI
 
 extension View {

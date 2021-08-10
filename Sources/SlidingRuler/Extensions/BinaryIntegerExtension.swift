@@ -26,7 +26,6 @@
 //  SOFTWARE.
 //
 
-
 import SmoothOperators
 
 extension BinaryInteger {
