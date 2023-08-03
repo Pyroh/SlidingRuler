@@ -31,13 +31,13 @@ import SwiftUI
 
 struct Ruler: View, Equatable {
     @Environment(\.slidingRulerStyle) private var style
-    
+
     let cells: [RulerCell]
     let step: CGFloat
     let markOffset: CGFloat
     let bounds: ClosedRange<CGFloat>
     let formatter: NumberFormatter?
-    
+
     var body: some View {
         HStack(spacing: 0) {
             ForEach(self.cells) { cell in
@@ -46,15 +46,13 @@ struct Ruler: View, Equatable {
         }
         .animation(nil)
     }
-    
+
     private func configuration(forCell cell: RulerCell) -> SlidingRulerStyleConfiguation {
         return .init(mark: (cell.mark + markOffset) * step, bounds: bounds, step: step, formatter: formatter)
     }
-    
+
     static func ==(lhs: Self, rhs: Self) -> Bool {
-        lhs.step == rhs.step &&
-        lhs.cells.count == rhs.cells.count &&
-        (!StaticSlidingRulerStyleEnvironment.hasMarks || lhs.markOffset == rhs.markOffset)
+        (lhs.step == rhs.step) && (lhs.cells.count == rhs.cells.count) && (lhs.markOffset == rhs.markOffset)
     }
 }
 
