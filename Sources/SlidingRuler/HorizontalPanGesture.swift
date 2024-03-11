@@ -38,7 +38,7 @@ struct HorizontalDragGestureValue {
     let location: CGPoint
 }
 
-protocol HorizontalPanGestureReceiverViewDelegate: class {
+protocol HorizontalPanGestureReceiverViewDelegate: AnyObject {
     func viewTouchedWithoutPan(_ view: UIView)
 }
 
